@@ -54,9 +54,25 @@ No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto a
 
 ## Compilar la app
 
-1. Abrir la carpeta `app-android` con Android Studio y esperar el *Gradle sync*.
-2. Emparejar el módulo desde los ajustes de Bluetooth de Android (PIN **1234** o **0000**).
-3. Instalar la app en el celular, abrirla, **Conectar** y elegir el módulo de la lista.
+Con Android Studio: abrir la carpeta `app-android` y esperar el *Gradle sync*.
+
+Sin Android Studio, hace falta un **JDK 17** y el SDK de Android (`platforms;android-34`
+y `build-tools;34.0.0`, que se bajan con el `sdkmanager` de las command line tools):
+
+```bash
+cd app-android
+./gradlew assembleDebug
+```
+
+El APK queda en `app-android/app/build/outputs/apk/debug/app-debug.apk`.
+Si el SDK no está en la ruta por defecto, hay que crear un `app-android/local.properties`
+con `sdk.dir=` apuntando a donde esté.
+
+Después:
+
+1. Emparejar el módulo desde los ajustes de Bluetooth de Android (PIN **1234** o **0000**).
+2. Instalar el APK en el celular (`adb install -r ...` o pasándolo a mano).
+3. Abrir la app, **Conectar** y elegir el módulo de la lista.
 
 La app lee los valores actuales del robot al conectarse. Cada `+` / `−` manda el cambio
 al instante, **Aplicar** manda los cinco juntos y **Guardar** los manda y los graba en la EEPROM.
