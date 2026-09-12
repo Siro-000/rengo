@@ -1,6 +1,7 @@
 package com.rengo.tuner
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -188,6 +189,7 @@ class MainActivity : AppCompatActivity() {
         elegirDispositivo()
     }
 
+    @SuppressLint("MissingPermission")
     private fun elegirDispositivo() {
         val adaptador = obtenerAdaptador()
         if (adaptador == null || !adaptador.isEnabled) {

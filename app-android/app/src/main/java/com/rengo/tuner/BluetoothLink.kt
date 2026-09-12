@@ -1,5 +1,6 @@
 package com.rengo.tuner
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.os.Handler
@@ -23,6 +24,7 @@ class BluetoothLink(
     val conectado: Boolean
         get() = socket?.isConnected == true
 
+    @SuppressLint("MissingPermission")
     fun conectar(dispositivo: BluetoothDevice) {
         cerrar()
         principal.post { alCambiarEstado(false, "Conectando...") }
