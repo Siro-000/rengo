@@ -5,9 +5,13 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.EditText
@@ -19,6 +23,12 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import java.util.Locale
+
+private data class Hallazgo(
+    val dispositivo: BluetoothDevice,
+    val nombre: String?,
+    val potencia: Int
+)
 
 private data class Parametro(
     val clave: String,
@@ -46,10 +56,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textoRegistro: TextView
     private lateinit var botonConectar: Button
 
-    private val pedirPermiso = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { concedido ->
-        if (concedido) elegirDispositivo()
+    private val pedirPermisos = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { resultados ->
+        if (resultados.values.all { it }) buscarDispositivos()
         else Toast.makeText(this, "Sin permiso de Bluetooth no puedo conectar", Toast.LENGTH_LONG).show()
     }
 
@@ -62,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         botonConectar = findViewById(R.id.botonConectar)
 
         enlace = BluetoothLink(
+            contexto = this,
             alRecibirLinea = { linea ->
                 registrar("< $linea")
                 if (linea.contains("VEL=")) volcarValores(linea)
@@ -178,58 +189,83 @@ class MainActivity : AppCompatActivity() {
 
     // ----- Bluetooth -----
 
-    private fun verificarPermisoYConectar() {
+    private fun permisosNecesarios() =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val permiso = Manifest.permission.BLUETOOTH_CONNECT
-            if (ContextCompat.checkSelfPermission(this, permiso) != PackageManager.PERMISSION_GRANTED) {
-                pedirPermiso.launch(permiso)
-                return
-            }
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-        elegirDispositivo()
+
+    private fun verificarPermisoYConectar() {
+        val faltantes = permisosNecesarios().filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (faltantes.isNotEmpty()) {
+            pedirPermisos.launch(faltantes.toTypedArray())
+            return
+        }
+        buscarDispositivos()
     }
 
+    // El módulo es BLE, así que no se empareja: hay que escanear cada vez.
     @SuppressLint("MissingPermission")
-    private fun elegirDispositivo() {
+    private fun buscarDispositivos() {
         val adaptador = obtenerAdaptador()
         if (adaptador == null || !adaptador.isEnabled) {
             Toast.makeText(this, "Prendé el Bluetooth del celular", Toast.LENGTH_LONG).show()
             return
         }
 
-        val vinculados = try {
-            adaptador.bondedDevices.toList()
-        } catch (_: SecurityException) {
-            emptyList()
+        val escaner = adaptador.bluetoothLeScanner ?: return
+        val encontrados = LinkedHashMap<String, Hallazgo>()
+
+        val escucha = object : ScanCallback() {
+            override fun onScanResult(tipo: Int, resultado: ScanResult) {
+                // El nombre del caché viene null si el dispositivo no está vinculado;
+                // el del anuncio es el que sirve.
+                val nombre = resultado.scanRecord?.deviceName ?: resultado.device.name
+                encontrados[resultado.device.address] =
+                    Hallazgo(resultado.device, nombre, resultado.rssi)
+            }
         }
 
-        if (vinculados.isEmpty()) {
+        textoEstado.text = "Buscando módulos..."
+        escaner.startScan(escucha)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            escaner.stopScan(escucha)
+            mostrarEncontrados(encontrados.values.sortedByDescending { it.potencia })
+        }, DURACION_BUSQUEDA)
+    }
+
+    private fun mostrarEncontrados(hallazgos: List<Hallazgo>) {
+        textoEstado.text = "Desconectado"
+
+        if (hallazgos.isEmpty()) {
             Toast.makeText(
                 this,
-                "No hay dispositivos vinculados. Emparejá el módulo desde los ajustes de Android (PIN 1234).",
+                "No encontré ningún módulo. Fijate que esté alimentado y parpadeando.",
                 Toast.LENGTH_LONG
             ).show()
             return
         }
 
-        val etiquetas = vinculados.map { "${it.name ?: "?"}\n${it.address}" }.toTypedArray()
+        val etiquetas = hallazgos.map {
+            "${it.nombre ?: "(sin nombre)"}\n${it.dispositivo.address}  ${it.potencia} dBm"
+        }.toTypedArray()
 
         AlertDialog.Builder(this)
             .setTitle("Elegí el módulo del robot")
-            .setItems(etiquetas) { _, indice -> conectarA(vinculados[indice]) }
+            .setItems(etiquetas) { _, indice -> enlace.conectar(hallazgos[indice].dispositivo) }
             .show()
-    }
-
-    private fun conectarA(dispositivo: BluetoothDevice) {
-        try {
-            enlace.conectar(dispositivo)
-        } catch (_: SecurityException) {
-            Toast.makeText(this, "Falta el permiso de Bluetooth", Toast.LENGTH_LONG).show()
-        }
     }
 
     private fun obtenerAdaptador(): BluetoothAdapter? {
         val servicio = getSystemService(BluetoothManager::class.java)
         return servicio?.adapter
+    }
+
+    private companion object {
+        const val DURACION_BUSQUEDA = 5000L
     }
 }
