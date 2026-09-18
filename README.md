@@ -66,34 +66,110 @@ No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto a
 
 ## Cargar el firmware
 
-1. Abrir `rengo.ino` en el IDE de Arduino.
-2. Placa: **Arduino Nano**. Si no carga, probar procesador *ATmega328P (Old Bootloader)*.
-3. **Desconectar el módulo Bluetooth no es necesario**, pero sí conviene desenchufar la
-   batería de los motores mientras cargás.
+Hace falta el [IDE de Arduino](https://www.arduino.cc/en/software) (el 1.8 o el 2.x). Las dos
+librerías que usa, `SoftwareSerial` y `EEPROM`, vienen incluidas: no hay que instalar nada más.
+
+1. **Desenchufar la batería de los motores.** Al cargar, el Arduino se reinicia y los pines de
+   los motores quedan un instante sin control; sin batería, las ruedas no pueden pegar un tirón.
+   El módulo Bluetooth puede quedar conectado: usa los pines 10 y 11, que no molestan al USB.
+2. Enchufar el Nano a la compu con el cable USB.
+3. Abrir `rengo.ino` en el IDE.
+4. En **Herramientas**:
+   - **Placa**: *Arduino Nano*.
+   - **Procesador**: *ATmega328P*. Los Nano clones casi siempre traen el cargador viejo: si
+     la carga falla con `avrdude: stk500_recv(): programmer is not responding`, elegir
+     *ATmega328P (Old Bootloader)* y probar de nuevo.
+   - **Puerto**: el `COM` que aparece al enchufar el Nano (si no sabés cuál es, desenchufalo,
+     mirá la lista, volvé a enchufarlo y fijate cuál apareció).
+5. Tocar **Subir** (la flecha →). Tiene que terminar con *Subido*.
+
+Si Windows no reconoce el Nano (no aparece ningún puerto nuevo), casi seguro es un clon con el
+chip USB **CH340** y le falta el driver: buscar "driver CH340" en el sitio de WCH, instalarlo y
+volver a enchufar.
+
+Dos cosas que conviene saber:
+
+- **Cargar el firmware no borra la EEPROM.** El robot sigue arrancando con lo último que se
+  grabó desde la app, aunque en el código cambies los valores iniciales de `velocidadBase`,
+  `Kp`, etc.: los del código solo se usan si la EEPROM nunca se grabó. Para forzarlos, cambiá
+  el número de `FIRMA_EEPROM` (por ejemplo de `0xA5C3` a `0xA5C4`): el robot no reconoce lo
+  guardado, arranca con los valores del código, y la próxima vez que grabes desde la app queda
+  todo con la firma nueva.
+- **El Monitor Serie no muestra nada.** El firmware habla solo por Bluetooth, no por el USB.
+  Para ver lo que contesta, usar la app (pestaña Registro) o una terminal BLE (ver *Comandos
+  por Bluetooth*).
 
 ## Compilar la app
 
-Con Android Studio: abrir la carpeta `app-android` y esperar el *Gradle sync*.
+Hay dos caminos. Android Studio es el más fácil; la línea de comandos sirve si no querés
+instalarlo.
 
-Sin Android Studio, hace falta un **JDK 17** y el SDK de Android (`platforms;android-34`
-y `build-tools;34.0.0`, que se bajan con el `sdkmanager` de las command line tools):
+### Con Android Studio
+
+1. Instalar [Android Studio](https://developer.android.com/studio). La primera vez que se
+   abre baja el SDK de Android solo.
+2. **File → Open** y elegir la carpeta **`app-android`** (no la raíz del repo: ahí no hay
+   proyecto de Android y no va a encontrar nada).
+3. Esperar el *Gradle sync* (la barra de abajo). La primera vez tarda unos minutos porque baja
+   todo lo que hace falta.
+4. Preparar el celular, una sola vez:
+   - **Ajustes → Acerca del teléfono** → tocar 7 veces **Número de compilación**. Aparece
+     "Ya sos desarrollador".
+   - **Ajustes → Sistema → Opciones para desarrolladores** → activar **Depuración por USB**.
+     (La ubicación exacta cambia según la marca; si no está ahí, buscar "desarrollador" en
+     los ajustes.)
+5. Enchufar el celular por USB y aceptar el cartel de "¿Permitir depuración por USB?".
+6. Elegir el celular en la lista de dispositivos de arriba y tocar **Run** (▶). Compila,
+   instala y abre la app.
+
+### Por línea de comandos
+
+Hace falta un **JDK 17** (es con el que está probado; con uno más viejo no compila) y el SDK
+de Android. El SDK se
+baja con las *command line tools* (al pie de la página de descarga de Android Studio):
+
+```bash
+sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+```
+
+Si el SDK no quedó en la ruta por defecto, crear `app-android/local.properties` con la
+ubicación (en Windows, con barras normales):
+
+```properties
+sdk.dir=C:/Users/tu-usuario/AppData/Local/Android/Sdk
+```
+
+Compilar e instalar:
 
 ```bash
 cd app-android
-./gradlew assembleDebug
+./gradlew assembleDebug                                   # en Windows (cmd): gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk  # con el celular enchufado y la depuración USB activada
 ```
 
-El APK queda en `app-android/app/build/outputs/apk/debug/app-debug.apk`.
-Si el SDK no está en la ruta por defecto, hay que crear un `app-android/local.properties`
-con `sdk.dir=` apuntando a donde esté.
+### Pasar la app a otro celular sin cable
 
-Después:
+El archivo que hay que pasar es el APK:
+`app-android/app/build/outputs/apk/debug/app-debug.apk`. Mandarlo por WhatsApp, Drive o como
+sea; en el otro celular, abrirlo y aceptar que el navegador (o WhatsApp) pueda "instalar apps
+desconocidas". Ver en *Pendiente* por qué conviene firmarlo con una clave del club antes de
+repartirlo mucho.
 
-1. Instalar el APK en el celular (`adb install -r ...` o pasándolo a mano).
-2. Abrir la app, **Conectar** y elegir **BT05** de la lista.
+### Problemas comunes
 
-No hay que emparejar nada. Al tocar Conectar la app escanea 5 segundos y muestra lo que
-encuentra, ordenado por potencia de señal — el módulo, que está al lado, queda arriba de todo.
+| Error | Qué pasa y qué hacer |
+|---|---|
+| `SDK location not found` | Gradle no encuentra el SDK: crear `local.properties` como arriba. |
+| `Unsupported class file major version` o errores raros de Gradle | Probablemente el JDK: usar el 17. En Android Studio: **Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**. |
+| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | La app instalada está firmada con otra clave (se compiló en otra compu). Hay que desinstalarla primero, y se pierden sus modos e historial. |
+| `adb: no devices` | El celular no está autorizado: desenchufar, volver a enchufar y aceptar el cartel de depuración USB. |
+
+### Conectar con el robot
+
+Abrir la app, tocar **Conectar** y elegir **BT05** de la lista. No hay que emparejar nada: la
+app escanea 5 segundos y muestra lo que encuentra ordenado por potencia de señal, así que el
+módulo, que está al lado, queda arriba de todo. La primera vez pide permiso para "dispositivos
+cercanos"; sin ese permiso no puede buscar el robot.
 
 ## Cómo se usa la app
 
