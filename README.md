@@ -5,6 +5,19 @@ Robot seguidor de línea con Arduino Nano, sintonizable desde el celular por Blu
 - [`rengo.ino`](rengo.ino) — firmware del Arduino Nano
 - [`app-android/`](app-android) — app Android para ajustar los parámetros en pista
 
+## Instalar la app
+
+Desde el celular, abrir este link: siempre baja la última versión.
+
+**https://github.com/Siro-000/rengo/releases/latest/download/rengo-tuner.apk**
+
+Al abrir el archivo descargado, Android pide permiso para que el navegador pueda "instalar apps
+desconocidas": aceptarlo y listo. Para actualizar, lo mismo: se instala encima y conserva los
+modos y el historial. Funciona en Android 7 o más nuevo.
+
+Las versiones anteriores y qué cambió en cada una están en
+[Releases](https://github.com/Siro-000/rengo/releases).
+
 ## Parámetros ajustables desde el celular
 
 | Parámetro | Comando | Qué es |
@@ -199,13 +212,22 @@ cd app-android
 Queda en `app-android/app/build/outputs/apk/release/app-release.apk`. Sin `keystore.properties`
 compila igual pero sale `app-release-unsigned.apk`, que Android no instala.
 
-### Pasar la app a otro celular
+### Publicar una versión nueva
 
-Mandar `app-release.apk` por WhatsApp, Drive o como sea. En el otro celular, abrirlo y aceptar
-que el navegador (o WhatsApp) pueda "instalar apps desconocidas".
+1. Subir `versionCode` en `app-android/app/build.gradle.kts` (1, 2, 3…) y, si querés,
+   `versionName` ("1.1", "2.0"…). Si `versionCode` no sube, Android no la instala encima.
+2. Compilar la oficial (`./gradlew assembleRelease`).
+3. En GitHub, **Releases → Draft a new release**: crear un tag con la versión (`v1.1`), contar
+   qué cambió y adjuntar el APK **renombrado a `rengo-tuner.apk`**. El nombre tiene que ser
+   siempre ese: es lo que hace andar el link de *Instalar la app*.
 
-Para una versión nueva: subir `versionCode` en `app-android/app/build.gradle.kts` (1, 2, 3…),
-compilar la oficial y repartirla igual. Se instala encima y conserva los modos y el historial.
+Con la herramienta `gh` de GitHub, el paso 3 es un solo comando:
+
+```bash
+gh release create v1.1 rengo-tuner.apk --title "Rengo Tuner 1.1" --notes "Qué cambió"
+```
+
+También se puede mandar el APK directo por WhatsApp o Drive: se instala igual.
 
 ### Conectar con el robot
 
@@ -282,7 +304,7 @@ Algunas decisiones que conviene no deshacer sin pensarlo:
 - El diseño de referencia (colores, tamaños, tipografías) salió de un handoff con prototipo
   en HTML que no está en el repo.
 
-Para repartir una versión nueva, ver *Firmar la app* y *Pasar la app a otro celular*.
+Para repartir una versión nueva, ver *Firmar la app* y *Publicar una versión nueva*.
 
 ## Pendiente / a tener en cuenta
 
