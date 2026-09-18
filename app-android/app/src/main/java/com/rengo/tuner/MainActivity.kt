@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var enlace: BluetoothLink
     private lateinit var textoEstado: TextView
-    private lateinit var textoRegistro: TextView
+    private lateinit var historial: Historial
     private lateinit var botonConectar: Button
     private lateinit var panelConectado: LinearLayout
     private lateinit var textoAyuda: TextView
@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     private val preferencias by lazy { getSharedPreferences("rengo", MODE_PRIVATE) }
     private val modos by lazy { Modos(preferencias) }
     private var modoBase: String? = null
+    private var aviso: Toast? = null
     private var buscando = false
     private var cortadoAMano = false
 
@@ -79,26 +80,43 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         textoEstado = findViewById(R.id.textoEstado)
-        textoRegistro = findViewById(R.id.textoRegistro)
         botonConectar = findViewById(R.id.botonConectar)
         panelConectado = findViewById(R.id.panelConectado)
         textoAyuda = findViewById(R.id.textoAyuda)
         botonModo = findViewById(R.id.botonModo)
 
+        historial = Historial(
+            panel = findViewById(R.id.panelHistorial),
+            barra = findViewById(R.id.barraHistorial),
+            scroll = findViewById(R.id.scrollHistorial),
+            lineas = findViewById(R.id.lineasHistorial),
+            cedible = findViewById(R.id.scrollParametros),
+            preferencias = preferencias,
+            alElegir = { hora, valores -> ofrecerVolverA(hora, valores) }
+        )
+
         enlace = BluetoothLink(
             contexto = this,
             alRecibirLinea = { linea ->
-                registrar("< $linea")
-                if (linea.contains("VEL=")) volcarValores(linea)
+                when {
+                    linea.contains("VEL=") -> volcarValores(linea)
+                    // "OK KP=0.5000": el cambio ya está anotado, repetirlo solo mete ruido.
+                    CONFIRMACION.matches(linea) -> Unit
+                    else -> historial.respuesta(linea)
+                }
             },
             alCambiarEstado = { conectado, mensaje ->
                 textoEstado.text = mensaje
                 mostrarPanel(conectado)
-                if (conectado) enlace.enviar("GET")
+                if (conectado) {
+                    historial.evento("── $mensaje")
+                    enlace.enviar("GET")
+                }
             }
         )
 
         armarFilas()
+        historial.iniciar(valoresActuales())
         refrescarModo()
 
         botonModo.setOnClickListener { elegirModo() }
@@ -117,11 +135,15 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.botonGuardar).setOnClickListener {
             enviarTodos()
-            mandar("SAVE")
+            if (mandar("SAVE")) historial.evento("grabado en el robot")
         }
 
-        findViewById<Button>(R.id.botonStart).setOnClickListener { mandar("START") }
-        findViewById<Button>(R.id.botonStop).setOnClickListener { mandar("STOP") }
+        findViewById<Button>(R.id.botonStart).setOnClickListener {
+            if (mandar("START")) historial.evento("▶ arrancar")
+        }
+        findViewById<Button>(R.id.botonStop).setOnClickListener {
+            if (mandar("STOP")) historial.evento("■ parar")
+        }
     }
 
     override fun onResume() {
@@ -140,6 +162,7 @@ class MainActivity : AppCompatActivity() {
         panelConectado.visibility = if (conectado) View.VISIBLE else View.GONE
         textoAyuda.visibility = if (conectado) View.GONE else View.VISIBLE
         botonConectar.text = if (conectado) "Desconectar" else "Conectar"
+        if (conectado) historial.irAlFinal()
     }
 
     private fun armarFilas() {
@@ -156,7 +179,11 @@ class MainActivity : AppCompatActivity() {
             campos[p.clave] = campo
 
             // Ya no hay botón Aplicar: el valor escrito a mano se manda al salir del casillero.
-            campo.setOnFocusChangeListener { _, tieneFoco -> if (!tieneFoco) aplicar(p) }
+            campo.setOnFocusChangeListener { _, tieneFoco ->
+                if (tieneFoco) return@setOnFocusChangeListener
+                aplicar(p)
+                anotarCambio()
+            }
             campo.setOnEditorActionListener { _, _, _ ->
                 campo.clearFocus()
                 false
@@ -170,19 +197,61 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun ajustar(p: Parametro, delta: Double) {
-        campos[p.clave]?.setText(formatear((leerCampo(p) + delta).coerceIn(p.minimo, p.maximo), p.decimales))
+        fijarCampo(p, leerCampo(p) + delta)
         aplicar(p)
+        anotarCambio()
+    }
+
+    // Se anota acá y no en aplicar(), porque aplicar() también corre al cargar un modo o
+    // al volver en el historial, y esos van como una sola línea con su propio título.
+    private fun anotarCambio() {
+        historial.anotar(valoresActuales(), Historial.Tipo.CAMBIO)
     }
 
     // Manda el valor al robot, que lo usa al instante pero no lo graba: la EEPROM
     // aguanta ~100 mil escrituras, así que solo se toca con Guardar.
     private fun aplicar(p: Parametro) {
-        val valor = leerCampo(p).coerceIn(p.minimo, p.maximo)
-        campos[p.clave]?.setText(formatear(valor, p.decimales))
+        fijarCampo(p, leerCampo(p))
+        val arrastrado = respetarTope(p)
         refrescarModo()
 
         if (!enlace.conectado) return
-        mandar("${p.clave}=${formatear(valor, p.decimales)}")
+        mandar("${p.clave}=${textoDe(p)}")
+        if (arrastrado != null) mandar("${arrastrado.clave}=${textoDe(arrastrado)}")
+    }
+
+    private fun fijarCampo(p: Parametro, valor: Double) {
+        campos[p.clave]?.setText(formatear(valor.coerceIn(p.minimo, p.maximo), p.decimales))
+    }
+
+    private fun textoDe(p: Parametro) = formatear(leerCampo(p), p.decimales)
+
+    // El firmware recorta cada rueda a la velocidad máxima, así que una base más alta no
+    // acelera: solo deja el número mintiendo. Se baja la base, nunca se sube el tope, para
+    // no tocar un límite que el usuario eligió a propósito. Devuelve el parámetro que
+    // hubo que arrastrar, si es que no fue el que se tocó.
+    private fun respetarTope(cambiado: Parametro): Parametro? {
+        val base = parametros.first { it.clave == "VEL" }
+        val tope = parametros.first { it.clave == "VMAX" }
+        if (cambiado != base && cambiado != tope) return null
+        if (leerCampo(base) <= leerCampo(tope)) return null
+
+        fijarCampo(base, leerCampo(tope))
+        val limite = textoDe(tope)
+        val arrastrado = if (cambiado == base) null else base
+
+        avisar(
+            if (arrastrado == null) "La velocidad base no puede pasar la máxima ($limite)"
+            else "Bajé la velocidad base a $limite para que no pase la máxima"
+        )
+        return arrastrado
+    }
+
+    // Cancela el anterior: si no, apretar + diez veces contra el tope deja diez carteles
+    // encolados apareciendo de a uno mucho después de que soltaste el botón.
+    private fun avisar(texto: String) {
+        aviso?.cancel()
+        aviso = Toast.makeText(this, texto, Toast.LENGTH_SHORT).also { it.show() }
     }
 
     private fun enviarTodos() {
@@ -218,6 +287,7 @@ class MainActivity : AppCompatActivity() {
         modoBase = nombre
         enviarTodos()
         refrescarModo()
+        historial.anotar(valoresActuales(), Historial.Tipo.MODO, "modo \"$nombre\"")
     }
 
     private fun elegirModo() {
@@ -227,18 +297,31 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        val vista = layoutInflater.inflate(R.layout.dialogo_cargar_modo, null)
         val dialogo = AlertDialog.Builder(this)
             .setTitle("Cargar modo")
-            .setItems(nombres.toTypedArray()) { _, indice -> cargarModo(nombres[indice]) }
+            .setView(vista)
             .setNegativeButton("Cancelar", null)
             .create()
 
-        dialogo.show()
-        dialogo.listView.setOnItemLongClickListener { _, _, indice, _ ->
-            dialogo.dismiss()
-            confirmarBorrado(nombres[indice])
-            true
+        // Cada fila lleva su botón de Borrar a la vista: antes era mantener apretado, que
+        // no se le ocurre a nadie, y los modos de prueba se acumulaban para siempre.
+        val lista = vista.findViewById<LinearLayout>(R.id.listaModos)
+        for (nombre in nombres) {
+            val fila = layoutInflater.inflate(R.layout.fila_modo_guardado, lista, false)
+            fila.findViewById<TextView>(R.id.nombreModoGuardado).text = nombre
+            fila.setOnClickListener {
+                dialogo.dismiss()
+                cargarModo(nombre)
+            }
+            fila.findViewById<Button>(R.id.botonBorrarModo).setOnClickListener {
+                dialogo.dismiss()
+                confirmarBorrado(nombre)
+            }
+            lista.addView(fila)
         }
+
+        dialogo.show()
     }
 
     private fun pedirNombreDeModo() {
@@ -323,13 +406,13 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun mandar(comando: String) {
+    private fun mandar(comando: String): Boolean {
         if (!enlace.conectado) {
             Toast.makeText(this, "Primero conectate al robot", Toast.LENGTH_SHORT).show()
-            return
+            return false
         }
         enlace.enviar(comando)
-        registrar("> $comando")
+        return true
     }
 
     private fun leerCampo(p: Parametro): Double {
@@ -354,10 +437,43 @@ class MainActivity : AppCompatActivity() {
         // Estos valores los puso el robot, no un modo que cargamos: que busque solo cuál es.
         modoBase = null
         refrescarModo()
+        historial.anotar(valoresActuales(), Historial.Tipo.ROBOT, "robot")
     }
 
-    private fun registrar(texto: String) {
-        textoRegistro.text = "$texto\n${textoRegistro.text}".take(2000)
+    // ----- Volver en el historial -----
+
+    // Muestra el camino inverso antes de hacerlo: tocar una línea sin querer mientras
+    // scrolleás no debería cambiarle cinco valores al robot sin avisar.
+    private fun ofrecerVolverA(hora: String, destino: Map<String, String>) {
+        val actuales = valoresActuales()
+        val camino = parametros.filter { actuales[it.clave] != destino[it.clave] }
+        if (camino.isEmpty()) {
+            avisar("Ya estás en ese punto")
+            return
+        }
+
+        val detalle = camino.joinToString("\n") {
+            "${it.nombre}: ${actuales[it.clave]} → ${destino[it.clave]}"
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Volver a las $hora")
+            .setMessage(detalle)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Volver") { _, _ -> volverA(hora, destino, camino) }
+            .show()
+    }
+
+    // Se mandan solo los valores que difieren: al robot le importa dónde termina, no
+    // los pasos intermedios, y cada comando cuesta 80 ms de Bluetooth.
+    private fun volverA(hora: String, destino: Map<String, String>, camino: List<Parametro>) {
+        // Primero todos los casilleros y después aplicar, así el tope de velocidad se
+        // compara contra los valores nuevos y no contra una mezcla de viejos y nuevos.
+        for (p in camino) destino[p.clave]?.let { campos[p.clave]?.setText(it) }
+        for (p in camino) aplicar(p)
+
+        modoBase = null
+        refrescarModo()
+        historial.anotar(valoresActuales(), Historial.Tipo.VUELTA, "↶ a las $hora")
     }
 
     // ----- Bluetooth -----
@@ -466,5 +582,6 @@ class MainActivity : AppCompatActivity() {
     private companion object {
         const val DURACION_BUSQUEDA = 5000L
         const val CLAVE_MODULO = "modulo"
+        val CONFIRMACION = Regex("OK [A-Z]+=.*")
     }
 }

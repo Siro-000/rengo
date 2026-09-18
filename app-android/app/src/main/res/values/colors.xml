@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- El historial es siempre oscuro, esté el celular en modo claro u oscuro:
+         así se distingue del resto de la pantalla en los dos casos. -->
+    <color name="terminal_fondo">#0D1117</color>
+    <color name="terminal_borde">#30363D</color>
+    <color name="terminal_barra">#161B22</color>
+    <color name="terminal_agarradera">#484F58</color>
+    <color name="terminal_hora">#6E7681</color>
+    <color name="terminal_texto">#E6EDF3</color>
+    <color name="terminal_modo">#7EE787</color>
+    <color name="terminal_vuelta">#E3B341</color>
+    <color name="terminal_robot">#79C0FF</color>
+    <color name="terminal_evento">#8B949E</color>
+    <color name="terminal_error">#FF7B72</color>
+</resources>

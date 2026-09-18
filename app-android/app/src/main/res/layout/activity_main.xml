@@ -86,6 +86,7 @@
         </LinearLayout>
 
         <ScrollView
+            android:id="@+id/scrollParametros"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginTop="8dp"
@@ -127,19 +128,79 @@
 
         </LinearLayout>
 
-        <ScrollView
+        <!-- El alto real lo pone el código con el que dejó el usuario la última vez;
+             se cambia arrastrando la barra de arriba. -->
+        <LinearLayout
+            android:id="@+id/panelHistorial"
             android:layout_width="match_parent"
-            android:layout_height="110dp"
-            android:layout_marginTop="6dp">
+            android:layout_height="160dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/fondo_terminal"
+            android:orientation="vertical"
+            android:padding="1dp">
 
-            <TextView
-                android:id="@+id/textoRegistro"
+            <LinearLayout
+                android:id="@+id/barraHistorial"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:textSize="12sp" />
+                android:background="@drawable/barra_terminal"
+                android:orientation="vertical"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp">
 
-        </ScrollView>
+                <View
+                    android:layout_width="36dp"
+                    android:layout_height="4dp"
+                    android:layout_gravity="center_horizontal"
+                    android:background="@drawable/agarradera" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="monospace"
+                        android:text="historial"
+                        android:textColor="@color/terminal_evento"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="monospace"
+                        android:maxLines="1"
+                        android:text="tocá un cambio para volver ahí"
+                        android:textColor="@color/terminal_hora"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <ScrollView
+                android:id="@+id/scrollHistorial"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:id="@+id/lineasHistorial"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="6dp" />
+
+            </ScrollView>
+
+        </LinearLayout>
 
     </LinearLayout>
 
