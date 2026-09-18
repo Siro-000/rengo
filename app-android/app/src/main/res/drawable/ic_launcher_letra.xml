@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La R del ícono: el contorno real de JetBrains Mono Bold, la misma letra del logo de
+     la barra de arriba. Centrada en el lienzo de 108dp de los íconos adaptables. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/marca_tinta"
+        android:fillType="evenOdd"
+        android:pathData="M43.46,70L43.46,38L53.58,38Q56.78,38 59.13,39.18Q61.47,40.37 62.79,42.49Q64.1,44.62 64.1,47.51Q64.1,50.67 62.5,53.08Q60.9,55.49 58.19,56.5L64.54,70L58.41,70L52.84,57.29L48.94,57.29L48.94,70L43.46,70ZM48.94,52.47L53.58,52.47Q55.91,52.47 57.22,51.19Q58.54,49.92 58.54,47.69Q58.54,45.41 57.22,44.12Q55.91,42.82 53.58,42.82L48.94,42.82L48.94,52.47Z" />
+</vector>

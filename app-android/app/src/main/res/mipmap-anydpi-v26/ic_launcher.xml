@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 8 en adelante: el launcher recorta el fondo con su forma (círculo, gota...).
+     monochrome es para los íconos temáticos de Android 13. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/marca" />
+    <foreground android:drawable="@drawable/ic_launcher_letra" />
+    <monochrome android:drawable="@drawable/ic_launcher_letra" />
+</adaptive-icon>
