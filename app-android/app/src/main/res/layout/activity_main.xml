@@ -158,12 +158,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:fontFamily="monospace"
                         android:text="historial"
                         android:textColor="@color/terminal_evento"
@@ -171,13 +171,29 @@
                         android:textStyle="bold" />
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
                         android:ellipsize="end"
                         android:fontFamily="monospace"
                         android:maxLines="1"
-                        android:text="tocá un cambio para volver ahí"
+                        android:text="tocá una línea para volver"
                         android:textColor="@color/terminal_hora"
+                        android:textSize="11sp" />
+
+                    <!-- Chico y gris: borra todo, así que no tiene que llamar la atención. -->
+                    <TextView
+                        android:id="@+id/botonLimpiarHistorial"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/toque_terminal"
+                        android:fontFamily="monospace"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="4dp"
+                        android:text="limpiar"
+                        android:textColor="@color/terminal_evento"
                         android:textSize="11sp" />
 
                 </LinearLayout>

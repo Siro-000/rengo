@@ -120,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         refrescarModo()
 
         botonModo.setOnClickListener { elegirModo() }
+        findViewById<TextView>(R.id.botonLimpiarHistorial).setOnClickListener { confirmarLimpiarHistorial() }
         findViewById<Button>(R.id.botonGuardarModo).setOnClickListener { pedirNombreDeModo() }
 
         botonConectar.setOnClickListener {
@@ -474,6 +475,14 @@ class MainActivity : AppCompatActivity() {
         modoBase = null
         refrescarModo()
         historial.anotar(valoresActuales(), Historial.Tipo.VUELTA, "↶ a las $hora")
+    }
+
+    private fun confirmarLimpiarHistorial() {
+        AlertDialog.Builder(this)
+            .setMessage("¿Borrar todo el historial? No se puede deshacer.")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Borrar") { _, _ -> historial.limpiar(valoresActuales()) }
+            .show()
     }
 
     // ----- Bluetooth -----

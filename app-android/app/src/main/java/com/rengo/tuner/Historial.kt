@@ -12,13 +12,17 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 // Historial con pinta de terminal: lo más nuevo abajo, una línea por cambio. Cada línea
 // que toca valores guarda cómo quedaron los cinco, así volver a un punto es copiar esa
-// foto en vez de deshacer los pasos de a uno.
+// foto en vez de deshacer los pasos de a uno. Se guarda en el celular para que no se
+// pierda si Android cierra la app, y para poder volver a lo que anduvo bien otro día.
 class Historial(
     private val panel: View,
     private val barra: View,
@@ -30,6 +34,7 @@ class Historial(
 ) {
 
     enum class Tipo(val color: Int) {
+        FECHA(R.color.terminal_evento),
         INICIO(R.color.terminal_evento),
         CAMBIO(R.color.terminal_texto),
         MODO(R.color.terminal_modo),
@@ -52,11 +57,18 @@ class Historial(
     private val contexto = panel.context
     private val entradas = ArrayList<Entrada>()
     private val formatoHora = SimpleDateFormat("HH:mm:ss", Locale.US)
+    private val formatoDia = SimpleDateFormat("yyyyMMdd", Locale.US)
+    private val formatoFecha = SimpleDateFormat("EEEE dd/MM", Locale("es", "AR"))
     private var foto: Map<String, String>? = null
+
+    // Como una terminal: si estás abajo, lo nuevo te sigue; si subiste a leer, no te mueve.
+    private var pegadoAbajo = true
 
     init {
         panel.layoutParams.height = preferencias.getInt(CLAVE_ALTO, dp(ALTO_INICIAL_DP))
         permitirAgrandar()
+        seguirLoUltimo()
+        cargar()
     }
 
     fun iniciar(valores: Map<String, String>) {
@@ -92,8 +104,30 @@ class Historial(
         agregar(Entrada(tipo, "‹ $linea", null, null, ahora(), nuevaVista()))
     }
 
+    // Arranca de cero pero con una línea de inicio, así siempre hay un punto al que volver.
+    fun limpiar(valores: Map<String, String>) {
+        entradas.clear()
+        lineas.removeAllViews()
+        iniciar(valores)
+    }
+
     fun irAlFinal() {
+        pegadoAbajo = true
         scroll.post { scroll.scrollTo(0, lineas.height) }
+    }
+
+    // Bajar al final "ya" no alcanza: el panel está oculto hasta que conecta y en ese
+    // momento todavía no tiene alto, así que bajaba hasta 0. Escuchando cada vez que
+    // cambia el tamaño, baja cuando Android ya lo midió.
+    private fun seguirLoUltimo() {
+        scroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            pegadoAbajo = !scroll.canScrollVertically(1)
+        }
+        val alCambiarTamano = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (pegadoAbajo) scroll.scrollTo(0, lineas.height)
+        }
+        lineas.addOnLayoutChangeListener(alCambiarTamano)
+        scroll.addOnLayoutChangeListener(alCambiarTamano)
     }
 
     // ----- Líneas -----
@@ -110,7 +144,6 @@ class Historial(
     }
 
     private fun juntar(entrada: Entrada, valores: Map<String, String>) {
-        val estabaAbajo = !scroll.canScrollVertically(1)
         entrada.despues = valores
         entrada.momento = ahora()
 
@@ -118,33 +151,60 @@ class Historial(
         if (entrada.antes == valores) {
             entradas.remove(entrada)
             lineas.removeView(entrada.vista)
-            return
+        } else {
+            pintar(entrada)
         }
 
-        pintar(entrada)
-        if (estabaAbajo) irAlFinal()
+        guardar()
     }
 
     private fun agregar(entrada: Entrada) {
-        // Si el usuario subió a leer algo viejo no lo arrastramos al final de golpe.
-        val estabaAbajo = !scroll.canScrollVertically(1)
-
-        pintar(entrada)
-        if (entrada.despues != null) {
-            entrada.vista.setBackgroundResource(R.drawable.toque_terminal)
-            entrada.vista.setOnClickListener {
-                alElegir(formatoHora.format(Date(entrada.momento)), entrada.despues!!)
-            }
+        // Las líneas solo tienen hora: sin un separador por día, con el historial guardado
+        // no habría forma de saber si un 10:53 es de hoy o de la semana pasada.
+        val anterior = entradas.lastOrNull()
+        if (anterior == null || !mismoDia(anterior.momento, entrada.momento)) {
+            sumar(separador(entrada.momento))
         }
+        sumar(entrada)
+        recortar()
+        guardar()
+    }
 
-        entradas.add(entrada)
-        lineas.addView(entrada.vista)
+    private fun sumar(entrada: Entrada, posicion: Int = entradas.size) {
+        preparar(entrada)
+        entradas.add(posicion, entrada)
+        lineas.addView(entrada.vista, posicion)
+    }
+
+    private fun recortar() {
+        if (entradas.size <= MAXIMO) return
         while (entradas.size > MAXIMO) lineas.removeView(entradas.removeAt(0).vista)
 
-        if (estabaAbajo) irAlFinal()
+        // Si se fue el separador de arriba, las líneas más viejas quedarían sin fecha.
+        val primera = entradas.first()
+        if (primera.tipo != Tipo.FECHA) sumar(separador(primera.momento), 0)
+    }
+
+    private fun separador(momento: Long) =
+        Entrada(Tipo.FECHA, "── ${formatoFecha.format(Date(momento))}", null, null, momento, nuevaVista())
+
+    private fun preparar(entrada: Entrada) {
+        pintar(entrada)
+        if (entrada.despues == null) return
+
+        entrada.vista.setBackgroundResource(R.drawable.toque_terminal)
+        entrada.vista.setOnClickListener {
+            alElegir(formatoHora.format(Date(entrada.momento)), entrada.despues!!)
+        }
     }
 
     private fun pintar(entrada: Entrada) {
+        if (entrada.tipo == Tipo.FECHA) {
+            entrada.vista.text = entrada.titulo
+            entrada.vista.setTextColor(color(entrada.tipo.color))
+            return
+        }
+
         val cuerpo = when (entrada.tipo) {
             Tipo.INICIO -> "inicio  " +
                 entrada.despues!!.entries.joinToString(" ") { "${it.key}=${it.value}" }
@@ -175,6 +235,57 @@ class Historial(
 
     private fun diferencias(antes: Map<String, String>, despues: Map<String, String>) =
         cambiadas(antes, despues).joinToString("   ") { "$it ${antes[it]} → ${despues[it]}" }
+
+    private fun mismoDia(a: Long, b: Long) =
+        formatoDia.format(Date(a)) == formatoDia.format(Date(b))
+
+    // ----- Guardado -----
+
+    private fun guardar() {
+        val lista = JSONArray()
+        for (entrada in entradas) {
+            val json = JSONObject()
+                .put(TIPO, entrada.tipo.name)
+                .put(MOMENTO, entrada.momento)
+            entrada.titulo?.let { json.put(TITULO, it) }
+            entrada.antes?.let { json.put(ANTES, JSONObject(it.toMap<String, Any>())) }
+            entrada.despues?.let { json.put(DESPUES, JSONObject(it.toMap<String, Any>())) }
+            lista.put(json)
+        }
+        preferencias.edit().putString(CLAVE_HISTORIAL, lista.toString()).apply()
+    }
+
+    private fun cargar() {
+        val texto = preferencias.getString(CLAVE_HISTORIAL, null) ?: return
+
+        // Si lo guardado no se puede leer (por ejemplo, de una versión vieja de la app),
+        // se arranca vacío en vez de cerrarse.
+        try {
+            val lista = JSONArray(texto)
+            for (i in 0 until lista.length()) {
+                val json = lista.getJSONObject(i)
+                sumar(
+                    Entrada(
+                        tipo = Tipo.valueOf(json.getString(TIPO)),
+                        titulo = json.optString(TITULO).ifEmpty { null },
+                        antes = json.optJSONObject(ANTES)?.let { aMapa(it) },
+                        despues = json.optJSONObject(DESPUES)?.let { aMapa(it) },
+                        momento = json.getLong(MOMENTO),
+                        vista = nuevaVista()
+                    )
+                )
+            }
+        } catch (e: JSONException) {
+            entradas.clear()
+            lineas.removeAllViews()
+        } catch (e: IllegalArgumentException) {
+            entradas.clear()
+            lineas.removeAllViews()
+        }
+    }
+
+    private fun aMapa(json: JSONObject) =
+        json.keys().asSequence().associateWith { json.getString(it) }
 
     // ----- Tamaño -----
 
@@ -222,6 +333,12 @@ class Historial(
 
     private companion object {
         const val CLAVE_ALTO = "alto_historial"
+        const val CLAVE_HISTORIAL = "historial"
+        const val TIPO = "tipo"
+        const val TITULO = "titulo"
+        const val ANTES = "antes"
+        const val DESPUES = "despues"
+        const val MOMENTO = "momento"
         const val JUNTAR_MS = 3000L
         const val MAXIMO = 300
         const val ALTO_INICIAL_DP = 160
