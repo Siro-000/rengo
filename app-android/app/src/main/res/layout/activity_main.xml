@@ -326,6 +326,7 @@
                     android:paddingVertical="9dp">
 
                     <TextView
+                        android:id="@+id/iconoGrabar"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:background="@drawable/icono_grabar"
@@ -337,6 +338,7 @@
                         android:textSize="12sp" />
 
                     <TextView
+                        android:id="@+id/textoGrabar"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="10dp"
@@ -347,6 +349,7 @@
                         android:textSize="13sp" />
 
                     <TextView
+                        android:id="@+id/etiquetaGrabar"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/jetbrains_mono_medium"

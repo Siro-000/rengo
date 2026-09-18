@@ -21,6 +21,7 @@ import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
 import android.util.TypedValue
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
@@ -91,6 +92,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var aviso: TextView
     private lateinit var botonArrancar: TextView
     private lateinit var haloArrancar: View
+    private lateinit var botonGrabar: View
+    private lateinit var iconoGrabar: TextView
+    private lateinit var textoGrabar: TextView
+    private lateinit var etiquetaGrabar: TextView
 
     private val preferencias by lazy { getSharedPreferences("rengo", MODE_PRIVATE) }
     private val modos by lazy { Modos(preferencias) }
@@ -118,6 +123,7 @@ class MainActivity : AppCompatActivity() {
     private var pulsoEstado: Animator? = null
     private var animacionBarrido: Animator? = null
     private var latidoArrancar: Animator? = null
+    private val restaurarGrabar = Runnable { pintarGrabar(hecho = false) }
     private val ocultarAviso = Runnable {
         aviso.animate().alpha(0f).setDuration(150).withEndAction { aviso.visibility = View.GONE }.start()
     }
@@ -141,6 +147,10 @@ class MainActivity : AppCompatActivity() {
             alRecibirLinea = { linea ->
                 when {
                     linea.contains("VEL=") -> volcarValores(linea)
+                    linea.startsWith("OK GUARDADO") -> {
+                        historial.respuesta(linea)
+                        mostrarGrabado("El robot confirmó", confirmado = true)
+                    }
                     // "OK KP=0.5000": el cambio ya está anotado, repetirlo solo mete ruido.
                     CONFIRMACION.matches(linea) -> Unit
                     else -> historial.respuesta(linea)
@@ -209,6 +219,10 @@ class MainActivity : AppCompatActivity() {
         aviso = findViewById(R.id.aviso)
         botonArrancar = findViewById(R.id.botonArrancar)
         haloArrancar = findViewById(R.id.haloArrancar)
+        botonGrabar = findViewById(R.id.botonGrabar)
+        iconoGrabar = findViewById(R.id.iconoGrabar)
+        textoGrabar = findViewById(R.id.textoGrabar)
+        etiquetaGrabar = findViewById(R.id.etiquetaGrabar)
 
         // El halo copia el tamaño del botón. Con match_parent en el layout, al medirse
         // dentro de una barra de alto libre se estiraba hasta el fondo de la pantalla y
@@ -246,9 +260,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.botonGuardarModo).setOnClickListener { abrirGuardarModo() }
         findViewById<View>(R.id.botonLimpiarHistorial).setOnClickListener { confirmarLimpiarHistorial() }
 
-        findViewById<View>(R.id.botonGrabar).setOnClickListener {
+        botonGrabar.setOnClickListener {
             enviarTodos()
-            if (mandar("SAVE")) historial.evento("grabado en el robot")
+            if (!mandar("SAVE")) return@setOnClickListener
+            historial.evento("grabado en el robot")
+            mostrarGrabado("Mandado a grabar", confirmado = false)
         }
         botonArrancar.setOnClickListener {
             if (!mandar("START")) return@setOnClickListener
@@ -513,6 +529,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ----- Grabar -----
+
+    // Grabar no cambia nada en pantalla (los valores ya estaban), así que el botón mismo
+    // avisa: se pinta y el celular vibra, para notarlo aunque estés mirando el robot.
+    // El ✓ queda reservado para cuando el robot contesta OK GUARDADO: al mandar la orden
+    // va una flecha, porque sin respuesta no hay forma de saber si la EEPROM se escribió.
+    private fun mostrarGrabado(texto: String, confirmado: Boolean) {
+        principal.removeCallbacks(restaurarGrabar)
+        pintarGrabar(hecho = true)
+        iconoGrabar.text = if (confirmado) "✓" else "→"
+        textoGrabar.text = texto
+
+        val vibracion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.CONFIRM
+        } else {
+            HapticFeedbackConstants.VIRTUAL_KEY
+        }
+        botonGrabar.performHapticFeedback(vibracion)
+        botonGrabar.scaleX = 0.97f
+        botonGrabar.scaleY = 0.97f
+        botonGrabar.animate().scaleX(1f).scaleY(1f).setDuration(180).start()
+
+        principal.postDelayed(restaurarGrabar, DURACION_GRABADO)
+    }
+
+    private fun pintarGrabar(hecho: Boolean) {
+        botonGrabar.setBackgroundResource(if (hecho) R.drawable.boton_grabar_hecho else R.drawable.boton_grabar)
+        iconoGrabar.setBackgroundResource(if (hecho) R.drawable.icono_grabar_hecho else R.drawable.icono_grabar)
+        if (!hecho) iconoGrabar.text = "↓"
+        iconoGrabar.setTextColor(color(if (hecho) R.color.marca else R.color.marca_tinta))
+        textoGrabar.setTextColor(color(if (hecho) R.color.marca_tinta else R.color.tinta))
+        etiquetaGrabar.setTextColor(color(if (hecho) R.color.marca_tinta else R.color.tinta2))
+        if (!hecho) textoGrabar.text = "Grabar en el robot"
+    }
+
     // ----- Animaciones -----
 
     // Punto de estado: late mientras busca o conecta.
@@ -580,6 +631,7 @@ class MainActivity : AppCompatActivity() {
         animacionBarrido = null
         latidoArrancar = null
         principal.removeCallbacks(ocultarAviso)
+        principal.removeCallbacks(restaurarGrabar)
     }
 
     // ----- Aviso breve -----
@@ -1030,6 +1082,7 @@ class MainActivity : AppCompatActivity() {
         const val DURACION_BUSQUEDA = 5000L
         const val DURACION_PESTANA = 180L
         const val DURACION_AVISO = 2400L
+        const val DURACION_GRABADO = 2000L
         const val CLAVE_MODULO = "modulo"
         const val CLAVE_NOMBRE = "nombre_modulo"
         const val CLAVE_TEMA = "tema"
