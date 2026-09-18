@@ -147,22 +147,65 @@ cd app-android
 adb install -r app/build/outputs/apk/debug/app-debug.apk  # con el celular enchufado y la depuración USB activada
 ```
 
-### Pasar la app a otro celular sin cable
+### Dos versiones: la oficial y la de desarrollo
 
-El archivo que hay que pasar es el APK:
-`app-android/app/build/outputs/apk/debug/app-debug.apk`. Mandarlo por WhatsApp, Drive o como
-sea; en el otro celular, abrirlo y aceptar que el navegador (o WhatsApp) pueda "instalar apps
-desconocidas". Ver en *Pendiente* por qué conviene firmarlo con una clave del club antes de
-repartirlo mucho.
+La app se compila de dos formas, y en el celular son **dos apps distintas** que conviven:
 
-### Problemas comunes
+| | Se compila con | En el celular aparece como | Firmada con |
+|---|---|---|---|
+| **Oficial** | `./gradlew assembleRelease` | Rengo Tuner | la clave del club |
+| **Desarrollo** | `./gradlew assembleDebug` o *Run* | Rengo Tuner (debug) | una clave automática de cada compu |
 
-| Error | Qué pasa y qué hacer |
-|---|---|
-| `SDK location not found` | Gradle no encuentra el SDK: crear `local.properties` como arriba. |
-| `Unsupported class file major version` o errores raros de Gradle | Probablemente el JDK: usar el 17. En Android Studio: **Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**. |
-| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | La app instalada está firmada con otra clave (se compiló en otra compu). Hay que desinstalarla primero, y se pierden sus modos e historial. |
-| `adb: no devices` | El celular no está autorizado: desenchufar, volver a enchufar y aceptar el cartel de depuración USB. |
+La oficial es la que se reparte. La de desarrollo es para probar cambios sin tocar la oficial.
+Cada una tiene sus propios modos e historial.
+
+### Firmar la app (versión oficial)
+
+Android solo instala una actualización encima de la anterior si está firmada con **la misma
+clave**. Si la clave se pierde, no hay más actualizaciones: cada uno tendría que desinstalar la
+app y perdería sus modos e historial. Por eso la clave del club se crea una sola vez y se guarda
+con backup, **fuera del repo** (el `.gitignore` ya impide subirla por error).
+
+**Crear la clave (una sola vez, en toda la vida de la app).** Con el `keytool` que viene en el
+JDK, desde una carpeta fuera del repo:
+
+```bash
+keytool -genkeypair -v -keystore rengo-club.jks -alias rengo -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Rengo Tuner, O=CdR FIUBA, C=AR"
+```
+
+Pide una contraseña dos veces. Queda el archivo `rengo-club.jks`: esa es la clave.
+
+**Guardarla.** Copiar `rengo-club.jks` y la contraseña a un lugar seguro del club (un gestor
+de contraseñas, un Drive privado). Quien vaya a sacar versiones oficiales necesita las dos cosas.
+
+**Decirle al proyecto dónde está.** Crear `app-android/keystore.properties` (no se sube al repo):
+
+```properties
+storeFile=C:/ruta/a/rengo-club.jks
+storePassword=la-contraseña
+keyAlias=rengo
+keyPassword=la-contraseña
+```
+
+Las dos contraseñas son la misma: `keytool` usa una sola.
+
+**Compilar la versión oficial:**
+
+```bash
+cd app-android
+./gradlew assembleRelease
+```
+
+Queda en `app-android/app/build/outputs/apk/release/app-release.apk`. Sin `keystore.properties`
+compila igual pero sale `app-release-unsigned.apk`, que Android no instala.
+
+### Pasar la app a otro celular
+
+Mandar `app-release.apk` por WhatsApp, Drive o como sea. En el otro celular, abrirlo y aceptar
+que el navegador (o WhatsApp) pueda "instalar apps desconocidas".
+
+Para una versión nueva: subir `versionCode` en `app-android/app/build.gradle.kts` (1, 2, 3…),
+compilar la oficial y repartirla igual. Se instala encima y conserva los modos y el historial.
 
 ### Conectar con el robot
 
@@ -239,8 +282,7 @@ Algunas decisiones que conviene no deshacer sin pensarlo:
 - El diseño de referencia (colores, tamaños, tipografías) salió de un handoff con prototipo
   en HTML que no está en el repo.
 
-Para repartir una versión nueva hay que subir `versionCode` en `app-android/app/build.gradle.kts`
-(1, 2, 3…): si no sube, Android no la instala encima de la anterior.
+Para repartir una versión nueva, ver *Firmar la app* y *Pasar la app a otro celular*.
 
 ## Pendiente / a tener en cuenta
 
@@ -248,11 +290,6 @@ Para repartir una versión nueva hay que subir `versionCode` en `app-android/app
   contestar. La app no recibe sus valores (muestra todo en 0) y nada confirma que los comandos
   llegan. Ojo con **Grabar** mientras tanto: graba en la EEPROM los valores que muestra la app,
   aunque sean esos 0.
-- **La app se reparte con el APK de depuración**, que está firmado con una clave que vive solo
-  en la compu donde se compila. Si esa clave se pierde, las versiones nuevas no se pueden
-  instalar encima: hay que desinstalar, y se pierden los modos y el historial de cada celular.
-  Falta crear una clave de firma del club y guardarla con backup, fuera del repo.
-
 - En la tabla de error, las condiciones `s2 && s3` y `s4 && s5` nunca se ejecutan porque los
   `else if (s3)` y `else if (s4)` van antes y las tapan. O sea, los errores ±20 y ±40 no ocurren
   nunca y el error salta de ±10 a ±30. Queda así a propósito por ahora: arreglarlo obliga a

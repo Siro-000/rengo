@@ -11,3 +11,8 @@ captures/
 
 # Material de diseño de referencia (handoff y prototipos), no es parte de la app
 rengo diseños/
+
+# Clave de firma del club: nunca al repo (ver README, "Firmar la app")
+keystore.properties
+*.jks
+*.keystore
