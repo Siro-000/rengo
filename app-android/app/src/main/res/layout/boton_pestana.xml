@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 48dp de alto como mínimo para que se pueda tocar con el dedo al costado de la pista. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:background="@drawable/toque_chrome"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="top|center_horizontal"
+    android:minHeight="48dp"
+    android:orientation="vertical"
+    android:paddingTop="5dp"
+    android:paddingBottom="3dp">
+
+    <View
+        android:id="@+id/indicador"
+        android:layout_width="38dp"
+        android:layout_height="4dp"
+        android:alpha="0"
+        android:background="@drawable/indicador_pestana" />
+
+    <TextView
+        android:id="@+id/etiqueta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:fontFamily="@font/raleway_bold"
+        android:textColor="@color/chrome_detalle"
+        android:textSize="10.5sp" />
+
+</LinearLayout>

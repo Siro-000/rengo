@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/hoja"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="20dp">
+
+    <View
+        android:layout_width="38dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="13dp"
+        android:background="@drawable/agarradera" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:fontFamily="@font/raleway_extrabold"
+        android:text="Guardar modo"
+        android:textColor="@color/tinta"
+        android:textSize="15sp" />
+
+    <EditText
+        android:id="@+id/nombreNuevoModo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/campo_texto"
+        android:fontFamily="@font/raleway_semibold"
+        android:hint="Nombre del modo"
+        android:imeOptions="actionDone"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLength="20"
+        android:maxLines="1"
+        android:padding="13dp"
+        android:textColor="@color/tinta"
+        android:textColorHint="@color/tinta3"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/resumenActual"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="2dp"
+        android:layout_marginTop="7dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/jetbrains_mono_medium"
+        android:maxLines="1"
+        android:textColor="@color/tinta3"
+        android:textSize="10.5sp" />
+
+    <TextView
+        android:id="@+id/tituloExistentes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="2dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="7dp"
+        android:fontFamily="@font/jetbrains_mono_semibold"
+        android:letterSpacing="0.09"
+        android:text="O SOBRESCRIBIR UNO"
+        android:textColor="@color/tinta3"
+        android:textSize="9.5sp" />
+
+    <!-- ChipGroup solo para que los nombres bajen de renglón cuando no entran. -->
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/existentes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:chipSpacingHorizontal="7dp"
+        app:chipSpacingVertical="7dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/cancelarGuardado"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/boton_contorno"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/raleway_bold"
+            android:gravity="center"
+            android:padding="13dp"
+            android:text="Cancelar"
+            android:textColor="@color/tinta2"
+            android:textSize="12.5sp" />
+
+        <TextView
+            android:id="@+id/confirmarGuardado"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="9dp"
+            android:layout_weight="1"
+            android:background="@drawable/boton_marca"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/raleway_bold"
+            android:gravity="center"
+            android:padding="13dp"
+            android:text="Guardar"
+            android:textColor="@color/marca_tinta"
+            android:textSize="12.5sp" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -2,15 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
-    android:orientation="vertical">
-
-    <TextView
-        android:id="@+id/nombreParametro"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+    android:background="@drawable/tarjeta"
+    android:elevation="@dimen/sombra_tarjeta"
+    android:orientation="vertical"
+    android:paddingHorizontal="9dp"
+    android:paddingTop="5dp"
+    android:paddingBottom="6dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,30 +15,119 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/botonMenos"
-            android:layout_width="64dp"
-            android:layout_height="56dp"
-            android:text="−"
-            android:textSize="22sp" />
+        <TextView
+            android:id="@+id/nombreParametro"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/raleway_bold"
+            android:maxLines="1"
+            android:textColor="@color/tinta"
+            android:textSize="12.5sp" />
 
-        <EditText
-            android:id="@+id/valorParametro"
+        <TextView
+            android:id="@+id/claveParametro"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/chip_clave"
+            android:fontFamily="@font/jetbrains_mono_medium"
+            android:includeFontPadding="false"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="1dp"
+            android:textColor="@color/tinta2"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/descripcionParametro"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:gravity="center"
-            android:imeOptions="actionDone"
-            android:importantForAutofill="no"
-            android:inputType="numberDecimal"
-            android:textSize="20sp" />
+            android:ellipsize="start"
+            android:fontFamily="@font/jetbrains_mono_medium"
+            android:gravity="end"
+            android:maxLines="1"
+            android:textColor="@color/tinta2"
+            android:textSize="9.5sp" />
 
-        <Button
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/botonMenos"
+            android:layout_width="62dp"
+            android:layout_height="47dp"
+            android:background="@drawable/boton_ctrl"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/jetbrains_mono_medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="−"
+            android:textColor="@color/ctrl_tinta"
+            android:textSize="26sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="10dp"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/valorParametro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:fontFamily="@font/jetbrains_mono_bold"
+                android:gravity="center"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:includeFontPadding="false"
+                android:inputType="numberDecimal"
+                android:padding="0dp"
+                android:selectAllOnFocus="true"
+                android:textColor="@color/tinta"
+                android:textSize="25sp" />
+
+            <!-- Barra de rango: el relleno se escala desde la izquierda según valor / máximo. -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/barra_track">
+
+                <View
+                    android:id="@+id/rellenoBarra"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/barra_marca" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <TextView
             android:id="@+id/botonMas"
-            android:layout_width="64dp"
-            android:layout_height="56dp"
+            android:layout_width="62dp"
+            android:layout_height="47dp"
+            android:background="@drawable/boton_ctrl"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="@font/jetbrains_mono_medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
             android:text="+"
-            android:textSize="22sp" />
+            android:textColor="@color/ctrl_tinta"
+            android:textSize="26sp" />
 
     </LinearLayout>
 

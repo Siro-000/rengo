@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- clipToOutline lo pone el código: así el toque de la zona izquierda respeta las
+     esquinas redondeadas de la fila. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/modo_fila"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:id="@+id/cargarModo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@drawable/toque"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="vertical"
+        android:paddingHorizontal="13dp"
+        android:paddingVertical="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/nombreModoGuardado"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/raleway_bold"
+                android:maxLines="1"
+                android:textColor="@color/tinta"
+                android:textSize="13.5sp" />
+
+            <TextView
+                android:id="@+id/chipActivo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="7dp"
+                android:background="@drawable/chip_activo"
+                android:fontFamily="@font/jetbrains_mono_bold"
+                android:includeFontPadding="false"
+                android:letterSpacing="0.06"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="2dp"
+                android:text="ACTIVO"
+                android:textColor="@color/marca_tinta"
+                android:textSize="9sp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/resumenModo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/jetbrains_mono_medium"
+            android:maxLines="1"
+            android:textColor="@color/tinta2"
+            android:textSize="10.5sp" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="@color/borde" />
+
+    <TextView
+        android:id="@+id/borrarModo"
+        android:layout_width="46dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/toque"
+        android:clickable="true"
+        android:contentDescription="Borrar modo"
+        android:focusable="true"
+        android:fontFamily="@font/jetbrains_mono_regular"
+        android:gravity="center"
+        android:text="✕"
+        android:textColor="@color/tinta3"
+        android:textSize="16sp" />
+
+</LinearLayout>

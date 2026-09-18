@@ -1,4 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.Rengo" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.Rengo" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/marca</item>
+        <item name="colorOnPrimary">@color/marca_tinta</item>
+        <item name="colorControlActivated">@color/marca</item>
+        <item name="android:colorBackground">@color/fondo</item>
+        <item name="android:windowBackground">@color/fondo</item>
+        <item name="android:textColorHighlight">#5500B3FE</item>
+        <!-- Barra de estado y de navegación del color del chrome en los dos temas. -->
+        <item name="android:statusBarColor">@color/chrome</item>
+        <item name="android:navigationBarColor">@color/chrome</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <item name="bottomSheetDialogTheme">@style/Rengo.Hoja</item>
+        <item name="android:textViewStyle">@style/Rengo.Texto</item>
+        <item name="editTextStyle">@style/Rengo.Campo</item>
+    </style>
+
+    <!-- Raleway trae números "de estilo antiguo": el 0 parece una o y "máxima (0)" se lee
+         "máxima (o)". lnum pide los números alineados; en Mono y Lato no cambia nada. -->
+    <style name="Rengo.Texto" parent="android:Widget.TextView">
+        <item name="android:fontFeatureSettings">lnum</item>
+    </style>
+
+    <style name="Rengo.Campo" parent="Widget.AppCompat.EditText">
+        <item name="android:fontFeatureSettings">lnum</item>
+    </style>
+
+    <!-- Hojas inferiores: el fondo redondeado lo pone el layout, así que la hoja de
+         Material va transparente. La entrada la anima el código (sube 16dp y aparece). -->
+    <style name="Rengo.Hoja" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Rengo.Hoja.Modal</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:windowAnimationStyle">@style/Rengo.Fundido</item>
+        <item name="android:navigationBarColor">@color/fondo</item>
+    </style>
+
+    <style name="Rengo.Hoja.Modal" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+
+    <style name="Rengo.Dialogo" parent="Theme.Material3.DayNight.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:windowAnimationStyle">@style/Rengo.Fundido</item>
+        <item name="android:windowMinWidthMajor">100%</item>
+        <item name="android:windowMinWidthMinor">100%</item>
+    </style>
+
+    <style name="Rengo.Fundido" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/aparece</item>
+        <item name="android:windowExitAnimation">@anim/desaparece</item>
+    </style>
+
 </resources>

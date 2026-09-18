@@ -8,3 +8,6 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Material de diseño de referencia (handoff y prototipos), no es parte de la app
+rengo diseños/

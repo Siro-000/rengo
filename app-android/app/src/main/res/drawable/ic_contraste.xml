@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Círculo con la mitad izquierda rellena: el ícono de contraste del botón de tema. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="17dp"
+    android:height="17dp"
+    android:viewportWidth="17"
+    android:viewportHeight="17">
+    <path
+        android:fillColor="@color/tema_icono"
+        android:pathData="M8.5,1.5 A7,7 0,0 0,8.5 15.5 Z" />
+    <path
+        android:pathData="M8.5,1 A7.5,7.5 0,1 1,8.49 1 Z"
+        android:strokeWidth="2"
+        android:strokeColor="@color/tema_icono" />
+</vector>

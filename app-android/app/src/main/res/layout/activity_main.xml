@@ -1,222 +1,634 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- clipChildren apagado hasta arriba: el halo de Arrancar se dibuja por fuera del botón.
+     La raíz toma el foco para que, al terminar de escribir un valor, el foco no salte
+     al primer casillero y deje el teclado abierto. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:background="@color/fondo"
+    android:clipChildren="false"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:orientation="vertical">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="22sp"
-        android:textStyle="bold" />
-
+    <!-- ===== Chrome: marca, tema y estado de la conexión ===== -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/botonConectar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Conectar" />
-
-        <TextView
-            android:id="@+id/textoEstado"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:text="Desconectado"
-            android:textSize="14sp" />
-
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/textoAyuda"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:paddingHorizontal="24dp"
-        android:text="Prendé el robot y tocá Conectar."
-        android:textSize="15sp" />
-
-    <LinearLayout
-        android:id="@+id/panelConectado"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:background="@color/chrome"
         android:orientation="vertical"
-        android:visibility="gone">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Una sola línea: si creciera a dos, el renglón cambiaría de alto según el
-                 nombre del modo y los botones bailarían cada vez que tocás un valor. -->
-            <Button
-                android:id="@+id/botonModo"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="Personalizado"
-                android:textAllCaps="false"
-                android:textSize="13sp" />
-
-            <Button
-                android:id="@+id/botonGuardarModo"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="Guardar modo"
-                android:textAllCaps="false"
-                android:textSize="13sp" />
-
-        </LinearLayout>
-
-        <ScrollView
-            android:id="@+id/scrollParametros"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="8dp"
-            android:layout_weight="1">
+            <TextView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/logo_marca"
+                android:fontFamily="@font/jetbrains_mono_bold"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="R"
+                android:textColor="@color/marca_tinta"
+                android:textSize="17sp" />
 
             <LinearLayout
-                android:id="@+id/contenedorParametros"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-        </ScrollView>
-
-        <Button
-            android:id="@+id/botonGuardar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Grabar en el robot" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/botonStart"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="11dp"
                 android:layout_weight="1"
-                android:text="Arrancar" />
+                android:orientation="vertical">
 
-            <Button
-                android:id="@+id/botonStop"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:text="Parar" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/raleway_extrabold"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="0.14"
+                    android:text="RENGO"
+                    android:textColor="@color/chrome_tinta"
+                    android:textSize="17sp" />
 
-        </LinearLayout>
-
-        <!-- El alto real lo pone el código con el que dejó el usuario la última vez;
-             se cambia arrastrando la barra de arriba. -->
-        <LinearLayout
-            android:id="@+id/panelHistorial"
-            android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/fondo_terminal"
-            android:orientation="vertical"
-            android:padding="1dp">
-
-            <LinearLayout
-                android:id="@+id/barraHistorial"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/barra_terminal"
-                android:orientation="vertical"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="6dp">
-
-                <View
-                    android:layout_width="36dp"
-                    android:layout_height="4dp"
-                    android:layout_gravity="center_horizontal"
-                    android:background="@drawable/agarradera" />
-
-                <LinearLayout
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="3dp"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/jetbrains_mono_medium"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="0.04"
+                    android:maxLines="1"
+                    android:text="tuner · seguidor de línea · CdR FIUBA"
+                    android:textColor="@color/chrome_subtitulo"
+                    android:textSize="10.5sp" />
+
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/botonTema"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="11dp"
+                android:background="@drawable/boton_tema"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/iconoTema"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_contraste" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="11dp">
+
+            <View
+                android:id="@+id/puntoEstado"
+                android:layout_width="9dp"
+                android:layout_height="9dp"
+                android:background="@drawable/punto" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tituloEstado"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/raleway_bold"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="Desconectado"
+                    android:textColor="@color/chrome_tinta"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/detalleEstado"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/jetbrains_mono_medium"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="el robot tiene que estar prendido"
+                    android:textColor="@color/chrome_detalle"
+                    android:textSize="10.5sp" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/botonConexion"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/boton_conectar"
+                android:fontFamily="@font/raleway_bold"
+                android:gravity="center"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp"
+                android:text="Conectar"
+                android:textColor="@color/marca_tinta"
+                android:textSize="12.5sp" />
+
+        </LinearLayout>
+
+        <!-- Barra de escaneo: un tramo del 40% cruzando en loop mientras busca o conecta. -->
+        <FrameLayout
+            android:id="@+id/barrido"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/barrido_fondo"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/tramoBarrido"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@color/dato" />
+
+        </FrameLayout>
+
+    </LinearLayout>
+
+    <!-- ===== Contenido de la pestaña (o el cartel si no hay conexión) ===== -->
+    <FrameLayout
+        android:id="@+id/contenido"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/vistaDesconectado"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="30dp"
+            android:paddingVertical="26dp">
+
+            <TextView
+                android:layout_width="58dp"
+                android:layout_height="58dp"
+                android:background="@drawable/icono_desconectado"
+                android:elevation="@dimen/sombra_tarjeta"
+                android:fontFamily="@font/jetbrains_mono_bold"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="R"
+                android:textColor="@color/dato"
+                android:textSize="25sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="13dp"
+                android:fontFamily="@font/raleway_bold"
+                android:gravity="center"
+                android:text="Prendé el robot y tocá Conectar"
+                android:textColor="@color/tinta"
+                android:textSize="17sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="13dp"
+                android:fontFamily="@font/lato_regular"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.33"
+                android:maxWidth="270dp"
+                android:text="El módulo es BLE: no se empareja desde los ajustes de Android. La app escanea 5 segundos y lo ordena por señal. Al conectar aparecen los valores que tiene guardados el robot."
+                android:textColor="@color/tinta2"
+                android:textSize="12.5sp" />
+
+            <TextView
+                android:id="@+id/botonConectarGrande"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="17dp"
+                android:background="@drawable/boton_marca"
+                android:fontFamily="@font/raleway_bold"
+                android:gravity="center"
+                android:paddingHorizontal="26dp"
+                android:paddingVertical="13dp"
+                android:text="Conectar"
+                android:textColor="@color/marca_tinta"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
+        <!-- Sintonía. El ScrollView es solo un salvavidas para pantallas chicas: en un
+             teléfono de 412×892dp todo entra sin scrollear, que es un requisito. -->
+        <ScrollView
+            android:id="@+id/pestanaSintonia"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="14dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="4dp">
+
+                <LinearLayout
+                    android:id="@+id/filaModo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/fila_modo_actual"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="10dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="monospace"
-                        android:text="historial"
-                        android:textColor="@color/terminal_evento"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:fontFamily="@font/jetbrains_mono_semibold"
+                        android:letterSpacing="0.09"
+                        android:text="MODO"
+                        android:textColor="@color/tinta2"
+                        android:textSize="9.5sp" />
+
+                    <TextView
+                        android:id="@+id/nombreModo"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="9dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/raleway_bold"
+                        android:maxLines="1"
+                        android:text="Personalizado"
+                        android:textColor="@color/tinta"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/jetbrains_mono_medium"
+                        android:includeFontPadding="false"
+                        android:text="›"
+                        android:textColor="@color/tinta3"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/contenedorParametros"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="9dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:divider="@drawable/espacio_7"
+                    android:orientation="vertical"
+                    android:showDividers="middle" />
+
+                <LinearLayout
+                    android:id="@+id/botonGrabar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="9dp"
+                    android:background="@drawable/boton_grabar"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="9dp">
+
+                    <TextView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/icono_grabar"
+                        android:fontFamily="@font/jetbrains_mono_bold"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:text="↓"
+                        android:textColor="@color/marca_tinta"
+                        android:textSize="12sp" />
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="10dp"
                         android:layout_weight="1"
-                        android:ellipsize="end"
-                        android:fontFamily="monospace"
-                        android:maxLines="1"
-                        android:text="tocá una línea para volver"
-                        android:textColor="@color/terminal_hora"
-                        android:textSize="11sp" />
+                        android:fontFamily="@font/raleway_bold"
+                        android:text="Grabar en el robot"
+                        android:textColor="@color/tinta"
+                        android:textSize="13sp" />
 
-                    <!-- Chico y gris: borra todo, así que no tiene que llamar la atención. -->
                     <TextView
-                        android:id="@+id/botonLimpiarHistorial"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:background="@drawable/toque_terminal"
-                        android:fontFamily="monospace"
-                        android:paddingHorizontal="6dp"
-                        android:paddingVertical="4dp"
-                        android:text="limpiar"
-                        android:textColor="@color/terminal_evento"
-                        android:textSize="11sp" />
+                        android:fontFamily="@font/jetbrains_mono_medium"
+                        android:text="EEPROM"
+                        android:textColor="@color/tinta2"
+                        android:textSize="9.5sp" />
 
                 </LinearLayout>
 
             </LinearLayout>
 
-            <ScrollView
-                android:id="@+id/scrollHistorial"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1">
+        </ScrollView>
 
-                <LinearLayout
-                    android:id="@+id/lineasHistorial"
+        <!-- Modos -->
+        <ScrollView
+            android:id="@+id/pestanaModos"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="14dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="4dp">
+
+                <TextView
+                    android:id="@+id/botonGuardarModo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/boton_primario"
+                    android:fontFamily="@font/raleway_bold"
+                    android:gravity="center"
+                    android:padding="14dp"
+                    android:text="Guardar los valores actuales"
+                    android:textColor="@color/marca_tinta"
+                    android:textSize="13.5sp" />
+
+                <TextView
+                    android:id="@+id/tituloModos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="11dp"
+                    android:fontFamily="@font/jetbrains_mono_semibold"
+                    android:letterSpacing="0.09"
+                    android:paddingHorizontal="2dp"
+                    android:paddingTop="2dp"
+                    android:textColor="@color/tinta2"
+                    android:textSize="9.5sp" />
+
+                <LinearLayout
+                    android:id="@+id/listaModos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="11dp"
+                    android:divider="@drawable/espacio_11"
                     android:orientation="vertical"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="6dp" />
+                    android:showDividers="middle" />
 
-            </ScrollView>
+                <TextView
+                    android:id="@+id/vacioModos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="11dp"
+                    android:background="@drawable/vacio_punteado"
+                    android:fontFamily="@font/raleway_semibold"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.28"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="22dp"
+                    android:text="Todavía no guardaste ningún modo.\nSintonizá en pista y guardá lo que ande bien."
+                    android:textColor="@color/tinta2"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
 
-        </LinearLayout>
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Registro: el terminal ocupa toda la pestaña. -->
+        <FrameLayout
+            android:id="@+id/pestanaRegistro"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="12dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/terminal_panel"
+                android:elevation="6dp"
+                android:orientation="vertical"
+                android:padding="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/terminal_barra"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="11dp"
+                    android:paddingVertical="9dp">
+
+                    <View
+                        android:id="@+id/puntoHistorial"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:background="@drawable/punto" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:fontFamily="@font/jetbrains_mono_bold"
+                        android:text="historial"
+                        android:textColor="@color/terminal_titulo"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/jetbrains_mono_regular"
+                        android:maxLines="1"
+                        android:text="tocá una línea para volver"
+                        android:textColor="@color/terminal_sugerencia"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/botonLimpiarHistorial"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/terminal_chip"
+                        android:fontFamily="@font/jetbrains_mono_medium"
+                        android:paddingHorizontal="9dp"
+                        android:paddingVertical="6dp"
+                        android:text="limpiar"
+                        android:textColor="@color/terminal_neutro"
+                        android:textSize="10sp" />
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/terminal_divisor" />
+
+                <ScrollView
+                    android:id="@+id/scrollHistorial"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:scrollbarThumbVertical="@color/terminal_divisor">
+
+                    <LinearLayout
+                        android:id="@+id/lineasHistorial"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clipToPadding="false"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="11dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="12dp" />
+
+                </ScrollView>
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <!-- Aviso breve (snackbar): 14dp de los costados, sobre la barra de Arrancar. -->
+        <TextView
+            android:id="@+id/aviso"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginHorizontal="14dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/aviso"
+            android:elevation="8dp"
+            android:fontFamily="@font/raleway_semibold"
+            android:lineSpacingMultiplier="1.2"
+            android:paddingHorizontal="13dp"
+            android:paddingVertical="11dp"
+            android:textColor="@color/tinta"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+    <!-- ===== Arrancar / Parar ===== -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/borde" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/fondo"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="8dp">
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:clipChildren="false">
+
+            <!-- Arranca en 0: el código le copia el tamaño del botón (ver MainActivity). -->
+            <View
+                android:id="@+id/haloArrancar"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:alpha="0"
+                android:background="@drawable/halo" />
+
+            <TextView
+                android:id="@+id/botonArrancar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/arrancar_quieto_desconectado"
+                android:fontFamily="@font/raleway_bold"
+                android:gravity="center"
+                android:paddingVertical="14dp"
+                android:text="Arrancar"
+                android:textColor="@color/tinta3"
+                android:textSize="14sp" />
+
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/botonParar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="9dp"
+            android:layout_weight="1"
+            android:background="@drawable/boton_parar"
+            android:fontFamily="@font/raleway_bold"
+            android:gravity="center"
+            android:paddingVertical="14dp"
+            android:text="Parar"
+            android:textColor="@color/stop"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- ===== Pestañas ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/chrome"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="6dp">
+
+        <include
+            android:id="@+id/pestanaBotonSintonia"
+            layout="@layout/boton_pestana" />
+
+        <include
+            android:id="@+id/pestanaBotonModos"
+            layout="@layout/boton_pestana" />
+
+        <include
+            android:id="@+id/pestanaBotonRegistro"
+            layout="@layout/boton_pestana" />
 
     </LinearLayout>
 

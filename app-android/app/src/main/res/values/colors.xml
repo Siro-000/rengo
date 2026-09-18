@@ -1,16 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- El historial es siempre oscuro, esté el celular en modo claro u oscuro:
-         así se distingue del resto de la pantalla en los dos casos. -->
+    <!-- Tema claro. Los que cambian en oscuro están en values-night/colors.xml.
+         Paleta del sitio del club (cdrfiuba.github.io): primario #00b3fe, secundario #384452. -->
+    <color name="fondo">#EEF1F5</color>
+    <color name="capa">#FFFFFF</color>
+    <color name="capa2">#E3E9EF</color>
+    <color name="borde">#CCD6DF</color>
+    <color name="tinta">#242E3A</color>
+    <color name="tinta2">#56657A</color>
+    <color name="tinta3">#8593A4</color>
+    <color name="dato">#0A6D97</color>
+    <color name="apoyo">#428BCA</color>
+    <color name="alerta">#8A6000</color>
+    <!-- El prototipo usa texto casi negro sobre el amarillo; sobre el marrón del tema
+         claro no se leía, así que acá va blanco. -->
+    <color name="alerta_tinta">#FFFFFF</color>
+    <color name="stop">#C1362C</color>
+    <color name="stop_tinta">#FFFFFF</color>
+    <color name="ctrl">#E1F2FC</color>
+    <color name="ctrl_borde">#96D1F2</color>
+    <color name="ctrl_tinta">#054760</color>
+
+    <!-- Arrancar quieto: en claro es blanco con borde, si no se pierde contra el fondo. -->
+    <color name="arrancar_quieto">#FFFFFF</color>
+    <color name="arrancar_quieto_desconectado">#FFFFFF</color>
+    <color name="arrancar_borde">#CCD6DF</color>
+
+    <!-- Iguales en los dos temas -->
+    <color name="marca">#00B3FE</color>
+    <color name="marca_tinta">#04222E</color>
+    <color name="marca_halo">#8000B3FE</color>
+    <color name="chrome">#384452</color>
+    <color name="chrome_tinta">#EAF1F8</color>
+    <color name="chrome_subtitulo">#BFC9D3</color>
+    <color name="chrome_detalle">#8FA1B4</color>
+    <color name="chrome_boton">#1AFFFFFF</color>
+    <color name="chrome_boton_tinta">#DBE6F1</color>
+    <color name="chrome_toque">#26FFFFFF</color>
+    <color name="tema_fondo">#14FFFFFF</color>
+    <color name="tema_borde">#24FFFFFF</color>
+    <color name="tema_icono">#CFDBE8</color>
+    <color name="punto_desconectado">#7C8A99</color>
+    <color name="barrido_fondo">#14FFFFFF</color>
+
+    <!-- Historial: fijo en los dos temas, siempre con pinta de terminal. -->
     <color name="terminal_fondo">#0D1117</color>
-    <color name="terminal_borde">#30363D</color>
     <color name="terminal_barra">#161B22</color>
-    <color name="terminal_agarradera">#484F58</color>
-    <color name="terminal_hora">#6E7681</color>
+    <color name="terminal_borde">#45505E</color>
+    <color name="terminal_divisor">#2C3846</color>
+    <color name="terminal_hora">#8892A0</color>
     <color name="terminal_texto">#E6EDF3</color>
+    <color name="terminal_evento">#A4B0BD</color>
+    <color name="terminal_fecha">#8892A0</color>
     <color name="terminal_modo">#7EE787</color>
     <color name="terminal_vuelta">#E3B341</color>
     <color name="terminal_robot">#79C0FF</color>
-    <color name="terminal_evento">#8B949E</color>
     <color name="terminal_error">#FF7B72</color>
+    <color name="terminal_neutro">#C3CEDB</color>
+    <color name="terminal_titulo">#E6EDF3</color>
+    <color name="terminal_sugerencia">#9AA6B2</color>
+    <color name="terminal_chip">#1AFFFFFF</color>
+    <color name="terminal_fila">#0EFFFFFF</color>
+    <color name="terminal_toque">#1FFFFFFF</color>
 </resources>

@@ -30,10 +30,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Rengo">
 
+        <!-- uiMode: cambiar entre claro y oscuro rearma la pantalla en vez de recrear la
+             actividad, que cortaría el Bluetooth. adjustPan: Sintonía no scrollea, así que
+             el teclado corre la pantalla hasta el casillero en vez de achicarla. -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="uiMode"
             android:exported="true"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
