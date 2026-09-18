@@ -32,11 +32,15 @@ class BluetoothLink(
     var conectado = false
         private set
 
+    var conectando = false
+        private set
+
     @SuppressLint("MissingPermission")
-    fun conectar(dispositivo: BluetoothDevice) {
+    fun conectar(dispositivo: BluetoothDevice, aviso: String = "Conectando...") {
         cerrar()
+        conectando = true
         nombre = dispositivo.name ?: dispositivo.address
-        alCambiarEstado(false, "Conectando...")
+        alCambiarEstado(false, aviso)
         gatt = dispositivo.connectGatt(contexto, false, respuestas, BluetoothDevice.TRANSPORT_LE)
     }
 
@@ -46,6 +50,7 @@ class BluetoothLink(
         gatt = null
         canal = null
         conectado = false
+        conectando = false
         escribiendo = false
         cola.clear()
         linea.setLength(0)
@@ -143,6 +148,7 @@ class BluetoothLink(
     private fun marcarConectado() {
         principal.post {
             conectado = true
+            conectando = false
             alCambiarEstado(true, "Conectado a $nombre")
         }
     }

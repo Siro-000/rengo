@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -55,6 +56,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textoEstado: TextView
     private lateinit var textoRegistro: TextView
     private lateinit var botonConectar: Button
+    private lateinit var panelConectado: LinearLayout
+    private lateinit var textoAyuda: TextView
+
+    private val preferencias by lazy { getSharedPreferences("rengo", MODE_PRIVATE) }
+    private var buscando = false
+    private var cortadoAMano = false
 
     private val pedirPermisos = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -70,6 +77,8 @@ class MainActivity : AppCompatActivity() {
         textoEstado = findViewById(R.id.textoEstado)
         textoRegistro = findViewById(R.id.textoRegistro)
         botonConectar = findViewById(R.id.botonConectar)
+        panelConectado = findViewById(R.id.panelConectado)
+        textoAyuda = findViewById(R.id.textoAyuda)
 
         enlace = BluetoothLink(
             contexto = this,
@@ -79,7 +88,7 @@ class MainActivity : AppCompatActivity() {
             },
             alCambiarEstado = { conectado, mensaje ->
                 textoEstado.text = mensaje
-                botonConectar.text = if (conectado) "Desconectar" else "Conectar"
+                mostrarPanel(conectado)
                 if (conectado) enlace.enviar("GET")
             }
         )
@@ -88,29 +97,27 @@ class MainActivity : AppCompatActivity() {
 
         botonConectar.setOnClickListener {
             if (enlace.conectado) {
+                cortadoAMano = true
                 enlace.cerrar()
                 textoEstado.text = "Desconectado"
-                botonConectar.text = "Conectar"
+                mostrarPanel(false)
             } else {
                 verificarPermisoYConectar()
             }
         }
 
-        findViewById<Button>(R.id.botonAplicar).setOnClickListener { enviarTodos() }
-
         findViewById<Button>(R.id.botonGuardar).setOnClickListener {
             enviarTodos()
-            enlace.enviar("SAVE")
-            registrar("> SAVE")
-        }
-
-        findViewById<Button>(R.id.botonLeer).setOnClickListener {
-            enlace.enviar("GET")
-            registrar("> GET")
+            mandar("SAVE")
         }
 
         findViewById<Button>(R.id.botonStart).setOnClickListener { mandar("START") }
         findViewById<Button>(R.id.botonStop).setOnClickListener { mandar("STOP") }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        reengancharse()
     }
 
     override fun onDestroy() {
@@ -119,6 +126,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ----- Interfaz -----
+
+    private fun mostrarPanel(conectado: Boolean) {
+        panelConectado.visibility = if (conectado) View.VISIBLE else View.GONE
+        textoAyuda.visibility = if (conectado) View.GONE else View.VISIBLE
+        botonConectar.text = if (conectado) "Desconectar" else "Conectar"
+    }
 
     private fun armarFilas() {
         val contenedor = findViewById<LinearLayout>(R.id.contenedorParametros)
@@ -133,6 +146,13 @@ class MainActivity : AppCompatActivity() {
             campo.setText(formatear(0.0, p.decimales))
             campos[p.clave] = campo
 
+            // Ya no hay botón Aplicar: el valor escrito a mano se manda al salir del casillero.
+            campo.setOnFocusChangeListener { _, tieneFoco -> if (!tieneFoco) aplicar(p) }
+            campo.setOnEditorActionListener { _, _, _ ->
+                campo.clearFocus()
+                false
+            }
+
             fila.findViewById<Button>(R.id.botonMenos).setOnClickListener { ajustar(p, -p.paso) }
             fila.findViewById<Button>(R.id.botonMas).setOnClickListener { ajustar(p, p.paso) }
 
@@ -141,17 +161,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun ajustar(p: Parametro, delta: Double) {
-        val nuevo = (leerCampo(p) + delta).coerceIn(p.minimo, p.maximo)
-        campos[p.clave]?.setText(formatear(nuevo, p.decimales))
-        mandar("${p.clave}=${formatear(nuevo, p.decimales)}")
+        campos[p.clave]?.setText(formatear((leerCampo(p) + delta).coerceIn(p.minimo, p.maximo), p.decimales))
+        aplicar(p)
+    }
+
+    // Manda el valor al robot, que lo usa al instante pero no lo graba: la EEPROM
+    // aguanta ~100 mil escrituras, así que solo se toca con Guardar.
+    private fun aplicar(p: Parametro) {
+        if (!enlace.conectado) return
+        val valor = leerCampo(p).coerceIn(p.minimo, p.maximo)
+        campos[p.clave]?.setText(formatear(valor, p.decimales))
+        mandar("${p.clave}=${formatear(valor, p.decimales)}")
     }
 
     private fun enviarTodos() {
-        for (p in parametros) {
-            val valor = leerCampo(p).coerceIn(p.minimo, p.maximo)
-            campos[p.clave]?.setText(formatear(valor, p.decimales))
-            mandar("${p.clave}=${formatear(valor, p.decimales)}")
-        }
+        for (p in parametros) aplicar(p)
     }
 
     private fun mandar(comando: String) {
@@ -229,13 +253,38 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        buscando = true
         textoEstado.text = "Buscando módulos..."
         escaner.startScan(escucha)
 
         Handler(Looper.getMainLooper()).postDelayed({
+            buscando = false
             escaner.stopScan(escucha)
             mostrarEncontrados(encontrados.values.sortedByDescending { it.potencia })
         }, DURACION_BUSQUEDA)
+    }
+
+    private fun conectarA(dispositivo: BluetoothDevice) {
+        cortadoAMano = false
+        preferencias.edit().putString(CLAVE_MODULO, dispositivo.address).apply()
+        enlace.conectar(dispositivo)
+    }
+
+    // El enlace BLE se corta al dejar la app en segundo plano. Como ya sabemos qué módulo
+    // eligió el usuario, alcanza con su MAC para volver a engancharse sin escanear.
+    private fun reengancharse() {
+        if (enlace.conectado || enlace.conectando || buscando || cortadoAMano) return
+
+        val mac = preferencias.getString(CLAVE_MODULO, null) ?: return
+        val adaptador = obtenerAdaptador() ?: return
+        if (!adaptador.isEnabled) return
+
+        val falta = permisosNecesarios().any {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (falta) return
+
+        enlace.conectar(adaptador.getRemoteDevice(mac), "Reconectando...")
     }
 
     private fun mostrarEncontrados(hallazgos: List<Hallazgo>) {
@@ -256,7 +305,7 @@ class MainActivity : AppCompatActivity() {
 
         AlertDialog.Builder(this)
             .setTitle("Elegí el módulo del robot")
-            .setItems(etiquetas) { _, indice -> enlace.conectar(hallazgos[indice].dispositivo) }
+            .setItems(etiquetas) { _, indice -> conectarA(hallazgos[indice].dispositivo) }
             .show()
     }
 
@@ -267,5 +316,6 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val DURACION_BUSQUEDA = 5000L
+        const val CLAVE_MODULO = "modulo"
     }
 }

@@ -31,6 +31,7 @@
             android:layout_height="56dp"
             android:layout_weight="1"
             android:gravity="center"
+            android:imeOptions="actionDone"
             android:importantForAutofill="no"
             android:inputType="numberDecimal"
             android:textSize="20sp" />
