@@ -54,6 +54,37 @@
         android:orientation="vertical"
         android:visibility="gone">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Una sola línea: si creciera a dos, el renglón cambiaría de alto según el
+                 nombre del modo y los botones bailarían cada vez que tocás un valor. -->
+            <Button
+                android:id="@+id/botonModo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Personalizado"
+                android:textAllCaps="false"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/botonGuardarModo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Guardar modo"
+                android:textAllCaps="false"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -72,7 +103,7 @@
             android:id="@+id/botonGuardar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Guardar en el robot" />
+            android:text="Grabar en el robot" />
 
         <LinearLayout
             android:layout_width="match_parent"

@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
@@ -58,8 +59,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var botonConectar: Button
     private lateinit var panelConectado: LinearLayout
     private lateinit var textoAyuda: TextView
+    private lateinit var botonModo: Button
 
     private val preferencias by lazy { getSharedPreferences("rengo", MODE_PRIVATE) }
+    private val modos by lazy { Modos(preferencias) }
+    private var modoBase: String? = null
     private var buscando = false
     private var cortadoAMano = false
 
@@ -79,6 +83,7 @@ class MainActivity : AppCompatActivity() {
         botonConectar = findViewById(R.id.botonConectar)
         panelConectado = findViewById(R.id.panelConectado)
         textoAyuda = findViewById(R.id.textoAyuda)
+        botonModo = findViewById(R.id.botonModo)
 
         enlace = BluetoothLink(
             contexto = this,
@@ -94,6 +99,10 @@ class MainActivity : AppCompatActivity() {
         )
 
         armarFilas()
+        refrescarModo()
+
+        botonModo.setOnClickListener { elegirModo() }
+        findViewById<Button>(R.id.botonGuardarModo).setOnClickListener { pedirNombreDeModo() }
 
         botonConectar.setOnClickListener {
             if (enlace.conectado) {
@@ -168,14 +177,150 @@ class MainActivity : AppCompatActivity() {
     // Manda el valor al robot, que lo usa al instante pero no lo graba: la EEPROM
     // aguanta ~100 mil escrituras, así que solo se toca con Guardar.
     private fun aplicar(p: Parametro) {
-        if (!enlace.conectado) return
         val valor = leerCampo(p).coerceIn(p.minimo, p.maximo)
         campos[p.clave]?.setText(formatear(valor, p.decimales))
+        refrescarModo()
+
+        if (!enlace.conectado) return
         mandar("${p.clave}=${formatear(valor, p.decimales)}")
     }
 
     private fun enviarTodos() {
         for (p in parametros) aplicar(p)
+    }
+
+    // ----- Modos guardados -----
+
+    private fun valoresActuales() = parametros.associate { p ->
+        p.clave to formatear(leerCampo(p).coerceIn(p.minimo, p.maximo), p.decimales)
+    }
+
+    // El estado se deduce de los valores: no hace falta recordar si el usuario tocó algo,
+    // alcanza con comparar lo que hay en pantalla contra lo que tiene guardado el modo.
+    private fun refrescarModo() {
+        val actuales = valoresActuales()
+        if (modoBase == null) modoBase = modos.buscarPorValores(actuales)
+
+        val base = modoBase
+        val guardados = base?.let { modos.valores(it) }
+
+        botonModo.text = when {
+            guardados == null -> "Personalizado"
+            guardados == actuales -> base
+            else -> "Personalizado (desde $base)"
+        }
+    }
+
+    private fun cargarModo(nombre: String) {
+        val valores = modos.valores(nombre) ?: return
+        for (p in parametros) valores[p.clave]?.let { campos[p.clave]?.setText(it) }
+
+        modoBase = nombre
+        enviarTodos()
+        refrescarModo()
+    }
+
+    private fun elegirModo() {
+        val nombres = modos.nombres()
+        if (nombres.isEmpty()) {
+            Toast.makeText(this, "Todavía no guardaste ningún modo", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialogo = AlertDialog.Builder(this)
+            .setTitle("Cargar modo")
+            .setItems(nombres.toTypedArray()) { _, indice -> cargarModo(nombres[indice]) }
+            .setNegativeButton("Cancelar", null)
+            .create()
+
+        dialogo.show()
+        dialogo.listView.setOnItemLongClickListener { _, _, indice, _ ->
+            dialogo.dismiss()
+            confirmarBorrado(nombres[indice])
+            true
+        }
+    }
+
+    private fun pedirNombreDeModo() {
+        val vista = layoutInflater.inflate(R.layout.dialogo_guardar_modo, null)
+        val campoNombre = vista.findViewById<EditText>(R.id.nombreModo)
+        campoNombre.setText(modoBase ?: "")
+        campoNombre.setSelection(campoNombre.text.length)
+
+        val existentes = modos.nombres()
+        vista.findViewById<TextView>(R.id.tituloExistentes).visibility =
+            if (existentes.isEmpty()) View.GONE else View.VISIBLE
+
+        val dialogo = AlertDialog.Builder(this)
+            .setTitle("Guardar modo")
+            .setView(vista)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Guardar", null)
+            .create()
+
+        // Tocar un nombre va derecho a sobrescribirlo. Copiarlo al casillero sería peor:
+        // el casillero recorta a 20 caracteres, así que un nombre viejo más largo no
+        // pisaría el modo original sino que crearía uno nuevo con el nombre cortado.
+        val lista = vista.findViewById<LinearLayout>(R.id.listaExistentes)
+        for (nombre in existentes) {
+            val item = TextView(this)
+            item.text = nombre
+            item.textSize = 16f
+            item.setPadding(0, 24, 0, 24)
+            item.maxLines = 1
+            item.ellipsize = TextUtils.TruncateAt.END
+            item.setOnClickListener {
+                dialogo.dismiss()
+                confirmarYGuardar(nombre)
+            }
+            lista.addView(item)
+        }
+
+        // Sin esto el diálogo se cierra aunque el nombre esté vacío.
+        dialogo.setOnShowListener {
+            dialogo.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val nombre = campoNombre.text.toString().trim()
+                if (nombre.isEmpty()) {
+                    campoNombre.error = "Poné un nombre"
+                    return@setOnClickListener
+                }
+                dialogo.dismiss()
+                confirmarYGuardar(nombre)
+            }
+        }
+        dialogo.show()
+    }
+
+    private fun confirmarYGuardar(nombre: String) {
+        if (!modos.nombres().contains(nombre)) {
+            guardarModo(nombre)
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setMessage("Ya existe \"$nombre\". ¿Sobrescribir?")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Sobrescribir") { _, _ -> guardarModo(nombre) }
+            .show()
+    }
+
+    private fun guardarModo(nombre: String) {
+        modos.guardar(nombre, valoresActuales())
+        modoBase = nombre
+        refrescarModo()
+        Toast.makeText(this, "Modo \"$nombre\" guardado", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun confirmarBorrado(nombre: String) {
+        AlertDialog.Builder(this)
+            .setMessage("¿Borrar el modo \"$nombre\"?")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Borrar") { _, _ ->
+                modos.borrar(nombre)
+                if (modoBase == nombre) modoBase = null
+                refrescarModo()
+            }
+            .show()
     }
 
     private fun mandar(comando: String) {
@@ -205,6 +350,10 @@ class MainActivity : AppCompatActivity() {
             val valor = partes[1].toDoubleOrNull() ?: continue
             campos[p.clave]?.setText(formatear(valor, p.decimales))
         }
+
+        // Estos valores los puso el robot, no un modo que cargamos: que busque solo cuál es.
+        modoBase = null
+        refrescarModo()
     }
 
     private fun registrar(texto: String) {
