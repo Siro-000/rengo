@@ -29,8 +29,8 @@ const int PIN_LED = 2;
 const int PIN_BOTON = 9;
 
 // --- MÓDULO BLUETOOTH (HC-05 / HC-06 ZS-040) ---
-const int PIN_BT_RX = 10;  // va al TXD del módulo
-const int PIN_BT_TX = 11;  // va al RXD del módulo (con divisor de tensión)
+const int PIN_BT_RX = 11;  // va al TXD del módulo
+const int PIN_BT_TX = 12;  // va al RXD del módulo (con divisor de tensión)
 SoftwareSerial BT(PIN_BT_RX, PIN_BT_TX);
 
 // --- UMBRAL DE CORTE DIGITAL ---
@@ -63,7 +63,10 @@ char bufferBT[24];
 byte largoBuffer = 0;
 
 // --- MEMORIA PERMANENTE ---
-const uint16_t FIRMA_EEPROM = 0xA5C3;
+// Cambiada de 0xA5C3 a 0xA5C4 el 28/09/2026: la EEPROM había quedado con todo en 0 (se
+// grabó desde la app mientras el robot no podía contestar y ella mostraba 0). Al no
+// reconocer la firma vieja, el robot ignora eso y arranca con los valores de acá abajo.
+const uint16_t FIRMA_EEPROM = 0xA5C4;
 const int DIR_EEPROM = 0;
 
 struct Ajustes {

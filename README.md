@@ -48,20 +48,20 @@ HC-05 Classic, así que por la serigrafía no se distinguen.
 |---|---|
 | VCC | 5V |
 | GND | GND |
-| TXD | pin 10 |
-| RXD | pin 11 **con resistencia** |
+| TXD | pin 11 |
+| RXD | pin 12 **con resistencia** |
 | STATE / EN | sin conectar |
 
 El módulo trabaja a 3.3V y el Nano saca 5V. El detalle que importa: el estado de reposo de un
-UART es HIGH, así que el pin 11 queda a 5V **de forma permanente**, no solo mientras transmite.
+UART es HIGH, así que el pin 12 queda a 5V **de forma permanente**, no solo mientras transmite.
 Sin nada que limite la corriente, los diodos de protección del módulo conducen todo el tiempo y
 el módulo se degrada de a poco.
 
 Dos formas de resolverlo, de peor a mejor:
 
-- **Una resistencia en serie** de 1kΩ a 10kΩ entre el pin 11 y el RXD. No baja el voltaje, pero
+- **Una resistencia en serie** de 1kΩ a 10kΩ entre el pin 12 y el RXD. No baja el voltaje, pero
   limita la corriente a ~1 mA, que el módulo tolera sin problema.
-- **Divisor de tensión**: dos resistencias iguales cualesquiera, una entre el pin 11 y el RXD, y
+- **Divisor de tensión**: dos resistencias iguales cualesquiera, una entre el pin 12 y el RXD, y
   otra entre el RXD y GND. Da 2.5V, bastante arriba del umbral del módulo para leer un `1`.
 
 No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto al cargar el programa.
@@ -74,7 +74,7 @@ No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto a
 | 3, 5 | motor izquierdo (dirección, PWM) |
 | 6, 7 | motor derecho (PWM, dirección) |
 | 9 | botón start/stop |
-| 10, 11 | Bluetooth |
+| 11, 12 | Bluetooth |
 | A2–A7 | sensores 6 a 1 |
 
 ## Cargar el firmware
@@ -84,7 +84,7 @@ librerías que usa, `SoftwareSerial` y `EEPROM`, vienen incluidas: no hay que in
 
 1. **Desenchufar la batería de los motores.** Al cargar, el Arduino se reinicia y los pines de
    los motores quedan un instante sin control; sin batería, las ruedas no pueden pegar un tirón.
-   El módulo Bluetooth puede quedar conectado: usa los pines 10 y 11, que no molestan al USB.
+   El módulo Bluetooth puede quedar conectado: usa los pines 11 y 12, que no molestan al USB.
 2. Enchufar el Nano a la compu con el cable USB.
 3. Abrir `rengo.ino` en el IDE.
 4. En **Herramientas**:
@@ -306,12 +306,40 @@ Algunas decisiones que conviene no deshacer sin pensarlo:
 
 Para repartir una versión nueva, ver *Firmar la app* y *Publicar una versión nueva*.
 
+## Si el Bluetooth no anda
+
+Un día entero de diagnóstico dejó estas lecciones, por si vuelve a pasar.
+
+**Empezar por el botón del robot.** Hace lo mismo que Arrancar pero sin Bluetooth. Si con el
+botón anda y desde la app no, el problema está en la comunicación; si con el botón tampoco,
+ni mires la app.
+
+**Mirar el LED del pin 2.** Prende solo cuando el robot está andando. Si al tocar Arrancar
+en la app no prende, la orden no llegó al Arduino. Si prende y las ruedas no giran, el
+problema es de motores, batería o de velocidades en 0.
+
+**Ver si el robot contesta.** En la pestaña Registro, las líneas que empiezan con `‹` son las
+respuestas del robot; si no hay ninguna nunca, el camino de vuelta está cortado. Que el
+celular diga "Conectado" solo prueba que habla con el módulo, no que el módulo hable con el
+Arduino.
+
+**Revisar las soldaduras antes de dar algo por quemado.** Una soldadura floja hace exactamente
+lo mismo que un módulo muerto: no pasa ni un byte, y encima va y viene. Acá se perdió una
+tarde dando por quemado un módulo que andaba bien y solo tenía los pines flojos.
+
+**Que los pines del firmware coincidan con la placa.** El firmware tenía el Bluetooth en los
+pines 10 y 11, y en la placa estaba en 11 y 12. Peor todavía: el Arduino usaba como salida el
+mismo pin donde el módulo también transmitía, o sea dos salidas peleando, que es de las peores
+cosas que se le puede hacer a un chip.
+
+**Cuidado con Grabar si la app no pudo leer el robot.** En ese caso la app muestra sus propios
+números y Grabar los escribe en la EEPROM, pisando los del robot. Así quedó una vez todo en 0
+y el robot sin moverse, aunque arrancaba y prendía el LED. La app ahora avisa antes de grabar
+en esa situación. Para recuperarlo: cambiar `FIRMA_EEPROM` y volver a cargar el firmware (ver
+*Cargar el firmware*).
+
 ## Pendiente / a tener en cuenta
 
-- **Falta la resistencia en el RXD del módulo** (ver Cableado): hasta ponerla, el robot no puede
-  contestar. La app no recibe sus valores (muestra todo en 0) y nada confirma que los comandos
-  llegan. Ojo con **Grabar** mientras tanto: graba en la EEPROM los valores que muestra la app,
-  aunque sean esos 0.
 - En la tabla de error, las condiciones `s2 && s3` y `s4 && s5` nunca se ejecutan porque los
   `else if (s3)` y `else if (s4)` van antes y las tapan. O sea, los errores ±20 y ±40 no ocurren
   nunca y el error salta de ±10 a ±30. Queda así a propósito por ahora: arreglarlo obliga a
