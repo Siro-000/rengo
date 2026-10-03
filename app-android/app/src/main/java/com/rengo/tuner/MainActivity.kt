@@ -106,6 +106,9 @@ class MainActivity : AppCompatActivity() {
     private var detalle = DETALLE_DESCONECTADO
     private var pestana = Pestana.SINTONIA
     private var corriendo = false
+
+    // Si el robot contestó alguna vez en esta conexión, los casilleros muestran lo suyo.
+    private var leyoDelRobot = false
     private var modoBase: String? = null
     private var cortadoAMano = false
     private var nocheAplicada = 0
@@ -260,12 +263,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.botonGuardarModo).setOnClickListener { abrirGuardarModo() }
         findViewById<View>(R.id.botonLimpiarHistorial).setOnClickListener { confirmarLimpiarHistorial() }
 
-        botonGrabar.setOnClickListener {
-            enviarTodos()
-            if (!mandar("SAVE")) return@setOnClickListener
-            historial.evento("grabado en el robot")
-            mostrarGrabado("Mandado a grabar", confirmado = false)
-        }
+        botonGrabar.setOnClickListener { if (leyoDelRobot) grabar() else avisarQueGrabaACiegas() }
         botonArrancar.setOnClickListener {
             if (!mandar("START")) return@setOnClickListener
             corriendo = true
@@ -463,6 +461,8 @@ class MainActivity : AppCompatActivity() {
                 estado = Estado.CONECTADO
                 detalle = detalleConectado(mensaje)
                 historial.evento("── $mensaje")
+                // Conexión nueva: hasta que conteste el GET, lo que se ve es de la app.
+                leyoDelRobot = false
                 enlace.enviar("GET")
             }
             enlace.conectando -> {
@@ -530,6 +530,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ----- Grabar -----
+
+    private fun grabar() {
+        enviarTodos()
+        if (!mandar("SAVE")) return
+        historial.evento("grabado en el robot")
+        mostrarGrabado("Mandado a grabar", confirmado = false)
+    }
+
+    // Si el robot nunca contestó, la app muestra sus propios números y no los de él.
+    // Grabar entonces le pisa la configuración guardada con algo que la app se inventó:
+    // así quedó una vez la EEPROM en 0 y el robot sin andar.
+    private fun avisarQueGrabaACiegas() {
+        val valores = valoresActuales()
+        confirmar(
+            titulo = "El robot no contestó",
+            mensaje = "La app no pudo leer sus valores, así que estos son los que escribiste vos. " +
+                "Si grabás, pisás los que el robot tiene guardados.",
+            accion = "Grabar igual",
+            tono = Tono.ALERTA,
+            detalle = parametros.map { "${it.clave}  ${valores[it.clave]}" }
+        ) { grabar() }
+    }
 
     // Grabar no cambia nada en pantalla (los valores ya estaban), así que el botón mismo
     // avisa: se pinta y el celular vibra, para notarlo aunque estés mirando el robot.
@@ -747,6 +769,8 @@ class MainActivity : AppCompatActivity() {
             val valor = partes[1].toDoubleOrNull() ?: continue
             campos[p.clave]?.setText(formatear(valor, p.decimales))
         }
+
+        leyoDelRobot = true
 
         // Estos valores los puso el robot, no un modo que cargamos: que busque solo cuál es.
         modoBase = null

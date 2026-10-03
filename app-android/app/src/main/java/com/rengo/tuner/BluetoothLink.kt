@@ -102,6 +102,8 @@ class BluetoothLink(
         }
 
         override fun onDescriptorWrite(g: BluetoothGatt, d: BluetoothGattDescriptor, status: Int) {
+            // status 0 es éxito: si no, el módulo no va a avisar cuando el robot conteste.
+            Log.i(ETIQUETA, "notificaciones activadas, status=$status")
             marcarConectado()
         }
 
@@ -110,6 +112,8 @@ class BluetoothLink(
             c: BluetoothGattCharacteristic,
             status: Int
         ) {
+            // status 0 es éxito: el módulo acusó recibo de lo que le mandamos.
+            Log.i(ETIQUETA, "comando entregado al módulo, status=$status")
             principal.postDelayed({
                 escribiendo = false
                 procesarCola()
@@ -197,6 +201,7 @@ class BluetoothLink(
 
     // BLE entrega de a 20 bytes, así que una respuesta larga llega partida en varios paquetes.
     private fun procesarBytes(datos: ByteArray) {
+        Log.i(ETIQUETA, "llegaron ${datos.size} bytes: ${String(datos).trim()}")
         principal.post {
             for (b in datos) {
                 val c = b.toInt().toChar()
