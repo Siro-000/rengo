@@ -16,3 +16,6 @@ rengo diseños/
 keystore.properties
 *.jks
 *.keystore
+
+# Material personal que quedó en la carpeta del proyecto
+referencias/

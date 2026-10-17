@@ -237,6 +237,197 @@
 
         </LinearLayout>
 
+        <!-- Enganchado al módulo, esperando que el robot conteste los valores. -->
+        <LinearLayout
+            android:id="@+id/vistaEsperando"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="30dp"
+            android:paddingVertical="26dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="58dp"
+                android:layout_height="58dp"
+                android:background="@drawable/icono_desconectado"
+                android:elevation="@dimen/sombra_tarjeta"
+                android:fontFamily="@font/jetbrains_mono_bold"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="R"
+                android:textColor="@color/dato"
+                android:textSize="25sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="13dp"
+                android:fontFamily="@font/raleway_bold"
+                android:gravity="center"
+                android:text="Enganchado al módulo"
+                android:textColor="@color/tinta"
+                android:textSize="17sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="13dp"
+                android:fontFamily="@font/lato_regular"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.33"
+                android:maxWidth="270dp"
+                android:text="Falta que el robot conteste, para saber con qué valores está andando."
+                android:textColor="@color/tinta2"
+                android:textSize="12.5sp" />
+
+        </LinearLayout>
+
+        <!-- El módulo contesta pero el robot no: hay que explicar qué implica seguir. -->
+        <ScrollView
+            android:id="@+id/vistaSinRespuesta"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingHorizontal="22dp"
+                android:paddingVertical="22dp">
+
+                <TextView
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:background="@drawable/icono_desconectado"
+                    android:elevation="@dimen/sombra_tarjeta"
+                    android:fontFamily="@font/jetbrains_mono_bold"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="!"
+                    android:textColor="@color/alerta"
+                    android:textSize="25sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="13dp"
+                    android:fontFamily="@font/raleway_bold"
+                    android:gravity="center"
+                    android:text="El módulo responde, el robot no"
+                    android:textColor="@color/tinta"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/lato_regular"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.33"
+                    android:maxWidth="280dp"
+                    android:text="Puede estar apagado, recién encendido, o el cable entre el módulo y el Arduino flojo."
+                    android:textColor="@color/tinta2"
+                    android:textSize="12.5sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/detalle_dialogo"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="13dp"
+                    android:paddingVertical="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/jetbrains_mono_semibold"
+                        android:letterSpacing="0.08"
+                        android:text="SI SEGUÍS IGUAL"
+                        android:textColor="@color/alerta"
+                        android:textSize="9.5sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="@font/lato_regular"
+                        android:lineSpacingMultiplier="1.35"
+                        android:text="Los valores que veas son los de la app, no los del robot: no vas a saber con cuáles está andando."
+                        android:textColor="@color/tinta2"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="7dp"
+                        android:fontFamily="@font/lato_regular"
+                        android:lineSpacingMultiplier="1.35"
+                        android:text="Tocar + o − le manda un número que puede estar lejos del suyo, y lo vas a notar recién cuando largue."
+                        android:textColor="@color/tinta2"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="7dp"
+                        android:fontFamily="@font/lato_regular"
+                        android:lineSpacingMultiplier="1.35"
+                        android:text="Grabar le pisa la sintonía guardada, y eso no se puede deshacer."
+                        android:textColor="@color/tinta2"
+                        android:textSize="12sp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/botonReintentar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/boton_contorno"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:fontFamily="@font/raleway_bold"
+                        android:gravity="center"
+                        android:padding="13dp"
+                        android:text="Reintentar"
+                        android:textColor="@color/tinta2"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:id="@+id/botonSeguirIgual"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="9dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/boton_alerta"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:fontFamily="@font/raleway_bold"
+                        android:gravity="center"
+                        android:padding="13dp"
+                        android:text="Seguir igual"
+                        android:textColor="@color/alerta_tinta"
+                        android:textSize="12.5sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
         <!-- Sintonía. El ScrollView es solo un salvavidas para pantallas chicas: en un
              teléfono de 412×892dp todo entra sin scrollear, que es un requisito. -->
         <ScrollView
@@ -567,47 +758,33 @@
         android:paddingTop="7dp"
         android:paddingBottom="8dp">
 
+        <!-- Un solo botón a todo el ancho: en marcha se pinta, late y pasa a decir Parar. -->
         <FrameLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:clipChildren="false">
 
             <!-- Arranca en 0: el código le copia el tamaño del botón (ver MainActivity). -->
             <View
-                android:id="@+id/haloArrancar"
+                android:id="@+id/haloMarcha"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:alpha="0"
                 android:background="@drawable/halo" />
 
             <TextView
-                android:id="@+id/botonArrancar"
+                android:id="@+id/botonMarcha"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/arrancar_quieto_desconectado"
                 android:fontFamily="@font/raleway_bold"
                 android:gravity="center"
-                android:paddingVertical="14dp"
+                android:paddingVertical="16dp"
                 android:text="Arrancar"
                 android:textColor="@color/tinta3"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
         </FrameLayout>
-
-        <TextView
-            android:id="@+id/botonParar"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="9dp"
-            android:layout_weight="1"
-            android:background="@drawable/boton_parar"
-            android:fontFamily="@font/raleway_bold"
-            android:gravity="center"
-            android:paddingVertical="14dp"
-            android:text="Parar"
-            android:textColor="@color/stop"
-            android:textSize="14sp" />
 
     </LinearLayout>
 
