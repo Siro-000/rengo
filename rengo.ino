@@ -6,11 +6,14 @@
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
 
-// --- PINES DE MOTORES (Driver L298N) ---
-const int PIN_MOTOR_IZQ_DIR = 3;
-const int PIN_MOTOR_IZQ_PWM = 5;
-const int PIN_MOTOR_DER_DIR = 7;
-const int PIN_MOTOR_DER_PWM = 6;
+// --- PINES DE MOTORES (driver con dos pines de dirección por motor y habilitación) ---
+const int PIN_MOTOR_IZQ_PWM = 3;
+const int PIN_MOTOR_IZQ_B = 4;
+const int PIN_MOTOR_IZQ_A = 5;
+const int PIN_STBY = 6;          // en bajo el driver queda deshabilitado y no mueve nada
+const int PIN_MOTOR_DER_A = 7;
+const int PIN_MOTOR_DER_B = 8;
+const int PIN_MOTOR_DER_PWM = 9;
 
 // --- INVERSIÓN FÍSICA DE MOTORES ---
 const bool INVERTIR_MOTOR_IZQ = true;
@@ -25,8 +28,8 @@ const int SENSOR_5 = A3;  // Medio Derecho     (+30 mm)
 const int SENSOR_6 = A2;  // Extremo Derecho   (+50 mm)
 
 // --- PERIFÉRICOS ---
-const int PIN_LED = 2;
-const int PIN_BOTON = 9;
+const int PIN_LED = A0;
+const int PIN_BOTON = 13;
 
 // --- MÓDULO BLUETOOTH (HC-05 / HC-06 ZS-040) ---
 const int PIN_BT_RX = 11;  // va al TXD del módulo
@@ -79,10 +82,13 @@ struct Ajustes {
 };
 
 void setup() {
-  pinMode(PIN_MOTOR_IZQ_DIR, OUTPUT);
   pinMode(PIN_MOTOR_IZQ_PWM, OUTPUT);
-  pinMode(PIN_MOTOR_DER_DIR, OUTPUT);
+  pinMode(PIN_MOTOR_IZQ_A, OUTPUT);
+  pinMode(PIN_MOTOR_IZQ_B, OUTPUT);
   pinMode(PIN_MOTOR_DER_PWM, OUTPUT);
+  pinMode(PIN_MOTOR_DER_A, OUTPUT);
+  pinMode(PIN_MOTOR_DER_B, OUTPUT);
+  pinMode(PIN_STBY, OUTPUT);
   pinMode(PIN_LED, OUTPUT);
 
   pinMode(PIN_BOTON, INPUT_PULLUP);
@@ -224,51 +230,37 @@ void leerBluetooth() {
 // ⚙️ CONTROL DE MOTORES
 // ==========================================
 
+// Con este driver, el sentido lo deciden dos pines por motor (A y B) y el PWM es directo:
+// 0 es quieto y 255 es a fondo. En el driver anterior, para ir hacia atrás había que
+// mandar 255 - velocidad, que confundía bastante.
+void moverMotor(int pinA, int pinB, int pinPWM, int vel, bool invertido) {
+  bool adelante = vel >= 0;
+  vel = constrain(abs(vel), 0, velocidadMaxima);
+  if (invertido) adelante = !adelante;
+
+  digitalWrite(pinA, adelante ? HIGH : LOW);
+  digitalWrite(pinB, adelante ? LOW : HIGH);
+  analogWrite(pinPWM, vel);
+}
+
 void moverMotorIzq(int vel) {
-  bool adelante = true;
-
-  if (vel < 0) {
-    adelante = false;
-    vel = abs(vel);
-  }
-
-  if (INVERTIR_MOTOR_IZQ) adelante = !adelante;
-  vel = constrain(vel, 0, velocidadMaxima);
-
-  if (adelante) {
-    digitalWrite(PIN_MOTOR_IZQ_DIR, LOW);
-    analogWrite(PIN_MOTOR_IZQ_PWM, vel);
-  } else {
-    digitalWrite(PIN_MOTOR_IZQ_DIR, HIGH);
-    analogWrite(PIN_MOTOR_IZQ_PWM, 255 - vel);
-  }
+  moverMotor(PIN_MOTOR_IZQ_A, PIN_MOTOR_IZQ_B, PIN_MOTOR_IZQ_PWM, vel, INVERTIR_MOTOR_IZQ);
 }
 
 void moverMotorDer(int vel) {
-  bool adelante = true;
-
-  if (vel < 0) {
-    adelante = false;
-    vel = abs(vel);
-  }
-
-  if (INVERTIR_MOTOR_DER) adelante = !adelante;
-  vel = constrain(vel, 0, velocidadMaxima);
-
-  if (adelante) {
-    digitalWrite(PIN_MOTOR_DER_DIR, LOW);
-    analogWrite(PIN_MOTOR_DER_PWM, vel);
-  } else {
-    digitalWrite(PIN_MOTOR_DER_DIR, HIGH);
-    analogWrite(PIN_MOTOR_DER_PWM, 255 - vel);
-  }
+  moverMotor(PIN_MOTOR_DER_A, PIN_MOTOR_DER_B, PIN_MOTOR_DER_PWM, vel, INVERTIR_MOTOR_DER);
 }
 
+// Además de soltar los motores (los dos pines de sentido en bajo, sin frenarlos de golpe),
+// baja el STBY: con el driver deshabilitado las ruedas no pueden girar ni por un error.
 void apagarMotores() {
-  digitalWrite(PIN_MOTOR_IZQ_DIR, LOW);
+  digitalWrite(PIN_MOTOR_IZQ_A, LOW);
+  digitalWrite(PIN_MOTOR_IZQ_B, LOW);
   analogWrite(PIN_MOTOR_IZQ_PWM, 0);
-  digitalWrite(PIN_MOTOR_DER_DIR, LOW);
+  digitalWrite(PIN_MOTOR_DER_A, LOW);
+  digitalWrite(PIN_MOTOR_DER_B, LOW);
   analogWrite(PIN_MOTOR_DER_PWM, 0);
+  digitalWrite(PIN_STBY, LOW);
 }
 
 void arrancar() {
@@ -276,6 +268,7 @@ void arrancar() {
   ultimoError = 0;
   integral = 0;
   vBaseActual = velocidadCurva;
+  digitalWrite(PIN_STBY, HIGH);   // habilita el driver: recién ahora las ruedas pueden girar
 }
 
 // ==========================================
