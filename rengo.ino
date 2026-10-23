@@ -16,7 +16,7 @@ const int PIN_MOTOR_DER_B = 8;
 const int PIN_MOTOR_DER_PWM = 9;
 
 // --- INVERSIÓN FÍSICA DE MOTORES ---
-const bool INVERTIR_MOTOR_IZQ = true;
+const bool INVERTIR_MOTOR_IZQ = false;
 const bool INVERTIR_MOTOR_DER = false;
 
 // --- PINES DE SENSORES ---
@@ -92,6 +92,9 @@ void setup() {
   pinMode(PIN_LED, OUTPUT);
 
   pinMode(PIN_BOTON, INPUT_PULLUP);
+  // Arranca con lo que el pin tenga de verdad: si ya estuviera en bajo al encender, el
+  // programa lo tomaria como un apreton y el robot largaria solo.
+  ultimoEstadoBoton = digitalRead(PIN_BOTON);
 
   apagarMotores();
   digitalWrite(PIN_LED, LOW);

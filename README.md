@@ -82,6 +82,13 @@ El driver es un **TB6612FNG**: cada motor lleva dos pines de sentido (A y B) má
 y el STBY habilita el chip entero. Los pines de PWM tienen que ser de los que el Nano puede
 modular (3, 5, 6, 9, 10, 11).
 
+**El pin 13 no sirve para el botón.** Es el único del Nano que ya trae algo conectado de
+fábrica: el LED de la placa con su resistencia a masa, mucho más fuerte que la resistencia
+interna que usa `INPUT_PULLUP`. El pin queda clavado en 0 con el botón suelto y apretado, así
+que el programa no puede distinguir los dos estados y al encender cree que lo apretaste. En la
+placa de 2026 quedó ahí: hay que mover ese cable a un pin libre (el 2 o el 10) o ponerle una
+resistencia de 470 Ω a 1 kΩ hacia 5 V.
+
 ## Cargar el firmware
 
 Hace falta el [IDE de Arduino](https://www.arduino.cc/en/software) (el 1.8 o el 2.x). Las dos
