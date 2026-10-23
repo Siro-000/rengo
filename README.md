@@ -75,7 +75,7 @@ No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto a
 | 7, 8, 9 | motor derecho (A, B, PWM) |
 | 11, 12 | Bluetooth |
 | 13 | botón start/stop |
-| A0 | LED |
+| A1 | LED |
 | A2–A7 | sensores 6 a 1 |
 
 El driver es un **TB6612FNG**: cada motor lleva dos pines de sentido (A y B) más uno de PWM,
