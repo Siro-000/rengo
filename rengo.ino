@@ -32,8 +32,8 @@ const int PIN_LED = A1;   // el diagrama decía A0, pero en la placa quedó en A
 const int PIN_BOTON = 13;
 
 // --- MÓDULO BLUETOOTH (HC-05 / HC-06 ZS-040) ---
-const int PIN_BT_RX = 11;  // va al TXD del módulo
-const int PIN_BT_TX = 12;  // va al RXD del módulo (con divisor de tensión)
+const int PIN_BT_RX = 12;  // va al TXD del módulo
+const int PIN_BT_TX = 11;  // va al RXD del módulo (con la resistencia)
 SoftwareSerial BT(PIN_BT_RX, PIN_BT_TX);
 
 // --- UMBRAL DE CORTE DIGITAL ---

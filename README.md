@@ -48,20 +48,20 @@ HC-05 Classic, así que por la serigrafía no se distinguen.
 |---|---|
 | VCC | 5V |
 | GND | GND |
-| TXD | pin 11 |
-| RXD | pin 12 **con resistencia** |
+| TXD | pin 12 |
+| RXD | pin 11 **con resistencia** |
 | STATE / EN | sin conectar |
 
 El módulo trabaja a 3.3V y el Nano saca 5V. El detalle que importa: el estado de reposo de un
-UART es HIGH, así que el pin 12 queda a 5V **de forma permanente**, no solo mientras transmite.
+UART es HIGH, así que el pin 11 queda a 5V **de forma permanente**, no solo mientras transmite.
 Sin nada que limite la corriente, los diodos de protección del módulo conducen todo el tiempo y
 el módulo se degrada de a poco.
 
 Dos formas de resolverlo, de peor a mejor:
 
-- **Una resistencia en serie** de 1kΩ a 10kΩ entre el pin 12 y el RXD. No baja el voltaje, pero
+- **Una resistencia en serie** de 1kΩ a 10kΩ entre el pin 11 y el RXD. No baja el voltaje, pero
   limita la corriente a ~1 mA, que el módulo tolera sin problema.
-- **Divisor de tensión**: dos resistencias iguales cualesquiera, una entre el pin 12 y el RXD, y
+- **Divisor de tensión**: dos resistencias iguales cualesquiera, una entre el pin 11 y el RXD, y
   otra entre el RXD y GND. Da 2.5V, bastante arriba del umbral del módulo para leer un `1`.
 
 No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto al cargar el programa.
@@ -73,7 +73,7 @@ No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto a
 | 3, 4, 5 | motor izquierdo (PWM, B, A) |
 | 6 | STBY del driver: en bajo no se mueve nada |
 | 7, 8, 9 | motor derecho (A, B, PWM) |
-| 11, 12 | Bluetooth |
+| 11, 12 | Bluetooth (12 recibe, 11 transmite) |
 | 13 | botón start/stop |
 | A1 | LED |
 | A2–A7 | sensores 6 a 1 |
