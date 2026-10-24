@@ -295,7 +295,7 @@ sirve, no va a ver el módulo:
 ```
 VEL=135      VMAX=255      KP=2.4      KI=0.01      KD=3.0
 SAVE         GET           START       STOP         LOAD
-INVI=1       INVD=0        PING
+INVI=1       INVD=0        PING        FREN=1       PWMF=1
 ```
 
 Acepta `VEL=135`, `vel 135` o `V135`. Contesta `OK ...` o `ERR COMANDO`.
@@ -304,6 +304,34 @@ Acepta `VEL=135`, `vel 135` o `V135`. Contesta `OK ...` o `ERR COMANDO`.
 normal); se aplican al instante y se graban solos en la EEPROM, porque corrigen un error de
 cableado y no algo que se ande tocando. `PING` contesta `PONG` y sirve para saber si el
 Arduino sigue escuchando. `GET` devuelve también `INVI=` e `INVD=`.
+
+`FREN` y `PWMF` prenden y apagan las dos mejoras del driver nuevo (ver abajo). Se graban
+solas, como la inversión, así que se puede probar una vuelta, apagar el robot y seguir
+probando lo mismo. `GET` las devuelve igual que las demás.
+
+## Las dos mejoras del driver
+
+El TB6612 puede hacer dos cosas que el puente viejo no, y las dos se prenden desde la pestaña
+**Motores** de la app. **Cambian cómo responde el robot: después de tocar cualquiera de las dos
+hay que volver a sintonizar Kp y Kd.** Por eso vienen apagadas y se prueban de a una,
+cronometrando vueltas.
+
+**Freno en la rueda de adentro** (`FREN`). En una curva, el PID le pide a la rueda interna
+menos velocidad que a la externa, y en las curvas cerradas le pide girar para atrás. Con el
+freno prendido, en vez de girar para atrás esa rueda se planta: el driver une los dos bornes
+del motor entre sí y el propio motor se frena (es el *short brake*, los dos pines de sentido en
+alto). Queda un giro más corto y menos brusco que con la reversa, pero también menos capaz de
+pivotear en una curva de 90°: cuál conviene depende de la pista.
+
+**PWM rápido** (`PWMF`). El Arduino no le manda al motor media tensión: le manda toda la
+tensión, prendiendo y apagando muy rápido, y lo que cambia es cuánto tiempo está prendido. De
+fábrica eso va a unos 490 veces por segundo, lo bastante lento como para que el motor lo
+escuche —el chillido agudo cuando anda despacio— y como para que entre pulso y pulso alcance a
+frenarse, así que a poca velocidad avanza a tirones. Subiéndolo a 31 mil veces por segundo los
+pulsos van tan seguidos que el motor recibe algo parecido a una tensión continua: queda más
+suave y con más fuerza abajo. Se cambia tocando los divisores de los temporizadores 1 y 2, que
+son los que manejan los pines 9 y 3; al temporizador 0 no se lo toca porque de él dependen
+`millis()` y `delay()`.
 
 ## Para modificar la app
 

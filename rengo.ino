@@ -21,6 +21,13 @@ const int PIN_MOTOR_DER_PWM = 9;
 bool invertirMotorIzq = false;
 bool invertirMotorDer = false;
 
+// --- MEJORAS QUE PERMITE EL DRIVER NUEVO (TB6612) ---
+// Las dos cambian cómo responde el robot, así que se prenden y apagan desde la app
+// (comandos FREN y PWMF) para poder comparar vueltas en la pista sin recompilar.
+// Ojo: con cualquiera de las dos prendida hay que volver a sintonizar Kp y Kd.
+bool frenoActivo = false;   // la rueda de adentro frena en vez de ir para atrás
+bool pwmRapido = false;     // PWM de 31 kHz en lugar de los 490 Hz de fábrica
+
 // --- PINES DE SENSORES ---
 const int SENSOR_1 = A7;  // Extremo Izquierdo (-50 mm)
 const int SENSOR_2 = A6;  // Medio Izquierdo   (-30 mm)
@@ -77,7 +84,9 @@ byte largoBuffer = 0;
 // Cambiada de 0xA5C4 a 0xA5C5 el 23/10/2026: la struct creció con la inversión de motores,
 // así que los datos viejos ya no coinciden campo por campo. Con la firma nueva se descartan
 // en vez de leerse corridos y dar valores sin sentido.
-const uint16_t FIRMA_EEPROM = 0xA5C5;
+// Cambiada de 0xA5C5 a 0xA5C6 el 24/10/2026: la struct volvió a crecer, ahora con el
+// freno activo y el PWM rápido.
+const uint16_t FIRMA_EEPROM = 0xA5C6;
 const int DIR_EEPROM = 0;
 
 struct Ajustes {
@@ -89,6 +98,8 @@ struct Ajustes {
   float Kd;
   bool invertirMotorIzq;
   bool invertirMotorDer;
+  bool frenoActivo;
+  bool pwmRapido;
 };
 
 void setup() {
@@ -110,6 +121,7 @@ void setup() {
   digitalWrite(PIN_LED, LOW);
 
   cargarAjustes();
+  aplicarFrecuenciaPwm();   // después de cargar: la frecuencia también viene de la EEPROM
 
   BT.begin(9600);
   BT.println(F("RENGO LISTO"));
@@ -133,11 +145,13 @@ void cargarAjustes() {
   Kd = a.Kd;
   invertirMotorIzq = a.invertirMotorIzq;
   invertirMotorDer = a.invertirMotorDer;
+  frenoActivo = a.frenoActivo;
+  pwmRapido = a.pwmRapido;
 }
 
 void guardarAjustes() {
   Ajustes a = { FIRMA_EEPROM, velocidadBase, velocidadMaxima, Kp, Ki, Kd,
-                invertirMotorIzq, invertirMotorDer };
+                invertirMotorIzq, invertirMotorDer, frenoActivo, pwmRapido };
   EEPROM.put(DIR_EEPROM, a);
 }
 
@@ -153,7 +167,9 @@ void enviarValores() {
   BT.print(F(" KD="));   BT.print(Kd, 3);
   BT.print(F(" EST="));  BT.print(robotActivo ? F("RUN") : F("STOP"));
   BT.print(F(" INVI=")); BT.print(invertirMotorIzq ? 1 : 0);
-  BT.print(F(" INVD=")); BT.println(invertirMotorDer ? 1 : 0);
+  BT.print(F(" INVD=")); BT.print(invertirMotorDer ? 1 : 0);
+  BT.print(F(" FREN=")); BT.print(frenoActivo ? 1 : 0);
+  BT.print(F(" PWMF=")); BT.println(pwmRapido ? 1 : 0);
 }
 
 void ejecutarComando(char *txt) {
@@ -228,6 +244,26 @@ void ejecutarComando(char *txt) {
     return;
   }
 
+  // --- Mejoras del driver nuevo ---
+  // Como la inversión, se graban en el acto: así se puede probar una vuelta con el freno
+  // activo, apagar el robot, volver a encenderlo y seguir probando lo mismo.
+  if (!strcmp(clave, "FREN") || !strcmp(clave, "PWMF")) {
+    bool activo = (valor != 0);
+    if (clave[0] == 'F') {
+      frenoActivo = activo;
+    } else {
+      pwmRapido = activo;
+      aplicarFrecuenciaPwm();
+    }
+    guardarAjustes();
+
+    BT.print(F("OK "));
+    BT.print(clave);
+    BT.print('=');
+    BT.println(activo ? 1 : 0);
+    return;
+  }
+
   // --- Asignación de parámetros ---
   if (!strcmp(clave, "VEL") || !strcmp(clave, "V")) {
     velocidadBase = constrain((int)valor, 0, 255);
@@ -275,6 +311,17 @@ void leerBluetooth() {
 // 0 es quieto y 255 es a fondo. En el driver anterior, para ir hacia atrás había que
 // mandar 255 - velocidad, que confundía bastante.
 void moverMotor(int pinA, int pinB, int pinPWM, int vel, bool invertido) {
+  // Con el freno activo, a la rueda de adentro se le pide frenar en vez de girar para atrás:
+  // los dos pines de sentido en alto cortocircuitan el motor y la rueda se planta. Es el
+  // freno del TB6612, que el puente viejo no tenía. Frena igual para los dos lados, así que
+  // no hace falta mirar si el motor está invertido.
+  if (frenoActivo && vel <= 0) {
+    digitalWrite(pinA, HIGH);
+    digitalWrite(pinB, HIGH);
+    analogWrite(pinPWM, 255);
+    return;
+  }
+
   bool adelante = vel >= 0;
   vel = constrain(abs(vel), 0, velocidadMaxima);
   if (invertido) adelante = !adelante;
@@ -282,6 +329,22 @@ void moverMotor(int pinA, int pinB, int pinPWM, int vel, bool invertido) {
   digitalWrite(pinA, adelante ? HIGH : LOW);
   digitalWrite(pinB, adelante ? LOW : HIGH);
   analogWrite(pinPWM, vel);
+}
+
+// El PWM de fábrica del Nano va a unos 490 Hz: lo bastante lento como para que el motor lo
+// escuche (el chillido agudo andando despacio) y como para que a poca velocidad avance a
+// tirones, porque entre pulso y pulso llega a frenarse. A 31 kHz los pulsos van tan seguidos
+// que el motor recibe algo parecido a una tensión continua: queda más suave y con más fuerza
+// abajo. El Timer1 maneja el pin 9 y el Timer2 el pin 3; al Timer0 no se lo toca porque de él
+// dependen millis() y delay(), que el resto del programa usa para medir el tiempo.
+void aplicarFrecuenciaPwm() {
+  if (pwmRapido) {
+    TCCR1B = (TCCR1B & 0b11111000) | 0x01;   // divisor 1 -> 31372 Hz
+    TCCR2B = (TCCR2B & 0b11111000) | 0x01;   // divisor 1 -> 31372 Hz
+  } else {
+    TCCR1B = (TCCR1B & 0b11111000) | 0x03;   // divisor 64, lo de fábrica
+    TCCR2B = (TCCR2B & 0b11111000) | 0x04;   // divisor 64 (en el Timer2 el código es otro)
+  }
 }
 
 void moverMotorIzq(int vel) {

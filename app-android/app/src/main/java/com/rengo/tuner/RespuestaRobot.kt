@@ -8,7 +8,9 @@ object RespuestaRobot {
         val valores: Map<String, String>,
         val andando: Boolean?,
         val invertidoIzq: Boolean?,
-        val invertidoDer: Boolean?
+        val invertidoDer: Boolean?,
+        val frenoActivo: Boolean? = null,
+        val pwmRapido: Boolean? = null
     )
 
     // Los valores salen como texto crudo: cuántos decimales lleva cada parámetro lo sabe
@@ -20,6 +22,8 @@ object RespuestaRobot {
         var andando: Boolean? = null
         var invertidoIzq: Boolean? = null
         var invertidoDer: Boolean? = null
+        var frenoActivo: Boolean? = null
+        var pwmRapido: Boolean? = null
 
         for (trozo in linea.trim().split(" ")) {
             val partes = trozo.split("=")
@@ -34,11 +38,13 @@ object RespuestaRobot {
                 clave == "EST" -> andando = valor == "RUN"
                 clave == "INVI" -> invertidoIzq = valor == "1"
                 clave == "INVD" -> invertidoDer = valor == "1"
+                clave == "FREN" -> frenoActivo = valor == "1"
+                clave == "PWMF" -> pwmRapido = valor == "1"
                 clave in CLAVES -> valores[clave] = valor
             }
         }
 
-        return Lectura(valores, andando, invertidoIzq, invertidoDer)
+        return Lectura(valores, andando, invertidoIzq, invertidoDer, frenoActivo, pwmRapido)
     }
 
     fun esConfirmacion(linea: String) = CONFIRMACION.matches(linea)

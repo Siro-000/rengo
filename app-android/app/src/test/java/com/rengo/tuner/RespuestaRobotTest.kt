@@ -106,4 +106,26 @@ class RespuestaRobotTest {
         assertFalse(RespuestaRobot.esPong("OK GUARDADO"))
         assertFalse(RespuestaRobot.esPong("PONG=1"))
     }
+
+    @Test
+    fun `lee el freno activo y el PWM rapido`() {
+        val lectura = RespuestaRobot.leer(
+            "VEL=50 VMAX=200 KP=3.000 KI=0.0000 KD=2.000 EST=STOP INVI=0 INVD=0 FREN=1 PWMF=0"
+        )
+
+        assertNotNull(lectura)
+        assertEquals(true, lectura!!.frenoActivo)
+        assertEquals(false, lectura.pwmRapido)
+    }
+
+    // El firmware viejo no los manda: la app tiene que dejar lo que ya tenía en vez de
+    // dar por hecho que están apagados.
+    @Test
+    fun `sin FREN ni PWMF quedan en nulo`() {
+        val lectura = RespuestaRobot.leer("VEL=50 VMAX=200 KP=3.000 KI=0.0000 KD=2.000 EST=STOP")
+
+        assertNotNull(lectura)
+        assertNull(lectura!!.frenoActivo)
+        assertNull(lectura.pwmRapido)
+    }
 }

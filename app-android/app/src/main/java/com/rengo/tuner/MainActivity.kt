@@ -105,6 +105,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var puntoCrono: View
     private lateinit var textoCrono: TextView
     private lateinit var ruedas: Map<Boolean, Rueda>
+    private lateinit var frenoApagado: TextView
+    private lateinit var frenoPrendido: TextView
+    private lateinit var pwmApagado: TextView
+    private lateinit var pwmPrendido: TextView
     private lateinit var pestanas: Map<Pestana, View>
     private lateinit var botonesPestana: Map<Pestana, View>
     private lateinit var nombreModo: TextView
@@ -135,6 +139,8 @@ class MainActivity : AppCompatActivity() {
     private var perdida: Perdida? = null
     private var invertidoIzq = false
     private var invertidoDer = false
+    private var frenoActivo = false
+    private var pwmRapido = false
     private val crono = Cronometro()
     private var latidosPerdidos = 0
 
@@ -374,6 +380,15 @@ class MainActivity : AppCompatActivity() {
             rueda.invertido.setOnClickListener { pedirInversion(esIzquierdo, invertir = true) }
         }
 
+        frenoApagado = findViewById(R.id.frenoApagado)
+        frenoPrendido = findViewById(R.id.frenoPrendido)
+        pwmApagado = findViewById(R.id.pwmApagado)
+        pwmPrendido = findViewById(R.id.pwmPrendido)
+        frenoApagado.setOnClickListener { pedirMejora(freno = true, prender = false) }
+        frenoPrendido.setOnClickListener { pedirMejora(freno = true, prender = true) }
+        pwmApagado.setOnClickListener { pedirMejora(freno = false, prender = false) }
+        pwmPrendido.setOnClickListener { pedirMejora(freno = false, prender = true) }
+
         botonGrabar.setOnClickListener { if (leyoDelRobot) grabar() else avisarQueGrabaACiegas() }
         // Un solo botón: manda lo contrario de lo que el robot está haciendo.
         botonMarcha.setOnClickListener {
@@ -406,6 +421,7 @@ class MainActivity : AppCompatActivity() {
         mostrarContenido(animar = false)
         pintarMarcha()
         pintarMotores()
+        pintarMejoras()
         pintarCrono()
 
         // Si el robot venía andando, el cronómetro tiene que seguir corriendo después de
@@ -886,6 +902,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Las dos mejoras del driver viajan como la inversión: el robot las aplica y las guarda
+    // solo, así que de este lado alcanza con anotarlo y repintar.
+    private fun pedirMejora(freno: Boolean, prender: Boolean) {
+        val actual = if (freno) frenoActivo else pwmRapido
+        if (actual == prender) return
+
+        val clave = if (freno) "FREN" else "PWMF"
+        if (!mandar("$clave=${if (prender) 1 else 0}")) return
+
+        if (freno) frenoActivo = prender else pwmRapido = prender
+        val que = if (freno) "freno en la rueda de adentro" else "PWM rápido"
+        historial.evento("$que · ${if (prender) "prendido" else "apagado"}")
+        vibrar()
+        pintarMejoras()
+    }
+
+    // Prendidas van en ámbar, igual que una rueda invertida: avisan que el robot ya no
+    // responde como con la sintonía de antes.
+    private fun pintarMejoras() {
+        pintarSegmento(frenoApagado, elegido = !frenoActivo, R.drawable.segmento_normal, R.color.marca_tinta)
+        pintarSegmento(frenoPrendido, elegido = frenoActivo, R.drawable.segmento_invertido, R.color.alerta_tinta)
+        pintarSegmento(pwmApagado, elegido = !pwmRapido, R.drawable.segmento_normal, R.color.marca_tinta)
+        pintarSegmento(pwmPrendido, elegido = pwmRapido, R.drawable.segmento_invertido, R.color.alerta_tinta)
+    }
+
     private fun pintarSegmento(boton: TextView, elegido: Boolean, fondo: Int, tinta: Int) {
         boton.setBackgroundResource(if (elegido) fondo else R.drawable.segmento_apagado)
         boton.setTextColor(color(if (elegido) tinta else R.color.tinta2))
@@ -1201,7 +1242,10 @@ class MainActivity : AppCompatActivity() {
         // El firmware viejo no manda la inversión; en ese caso se deja lo que ya había.
         lectura.invertidoIzq?.let { invertidoIzq = it }
         lectura.invertidoDer?.let { invertidoDer = it }
+        lectura.frenoActivo?.let { frenoActivo = it }
+        lectura.pwmRapido?.let { pwmRapido = it }
         pintarMotores()
+        pintarMejoras()
 
         volvioAContestar()
 

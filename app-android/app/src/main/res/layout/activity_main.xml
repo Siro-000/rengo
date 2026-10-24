@@ -1233,6 +1233,178 @@
                     android:textColor="@color/tinta3"
                     android:textSize="10sp" />
 
+                <!-- Van acá y no en Sintonía porque no son valores que se afinen de a poco:
+                     se prueban prendidas y apagadas, cronometrando vueltas. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="26dp"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="2dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/raleway_extrabold"
+                        android:lineSpacingMultiplier="1.2"
+                        android:text="Aprovechar el driver"
+                        android:textColor="@color/tinta"
+                        android:textSize="17sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="Dos cosas que el driver nuevo puede hacer y el viejo no. Probá de a una y cronometrá."
+                        android:textColor="@color/tinta2"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/tarjeta_ruedas"
+                    android:orientation="vertical"
+                    android:padding="13dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/raleway_bold"
+                        android:text="Freno en la rueda de adentro"
+                        android:textColor="@color/tinta"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:fontFamily="@font/jetbrains_mono_medium"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="en curva se planta en el lugar, en vez de girar para atrás"
+                        android:textColor="@color/tinta2"
+                        android:textSize="9.5sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="9dp"
+                        android:background="@drawable/segmento_pista"
+                        android:orientation="horizontal"
+                        android:padding="3dp">
+
+                        <TextView
+                            android:id="@+id/frenoApagado"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/segmento_normal"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:fontFamily="@font/raleway_bold"
+                            android:gravity="center"
+                            android:text="Apagado"
+                            android:textColor="@color/marca_tinta"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:id="@+id/frenoPrendido"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_marginStart="3dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/segmento_apagado"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:fontFamily="@font/raleway_bold"
+                            android:gravity="center"
+                            android:text="Prendido"
+                            android:textColor="@color/tinta2"
+                            android:textSize="11.5sp" />
+
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="15dp"
+                        android:background="@color/borde" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="15dp"
+                        android:fontFamily="@font/raleway_bold"
+                        android:text="PWM rápido"
+                        android:textColor="@color/tinta"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:fontFamily="@font/jetbrains_mono_medium"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="31 kHz en vez de 490 Hz: sin chillido y más parejo despacio"
+                        android:textColor="@color/tinta2"
+                        android:textSize="9.5sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="9dp"
+                        android:background="@drawable/segmento_pista"
+                        android:orientation="horizontal"
+                        android:padding="3dp">
+
+                        <TextView
+                            android:id="@+id/pwmApagado"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/segmento_normal"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:fontFamily="@font/raleway_bold"
+                            android:gravity="center"
+                            android:text="Apagado"
+                            android:textColor="@color/marca_tinta"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:id="@+id/pwmPrendido"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_marginStart="3dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/segmento_apagado"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:fontFamily="@font/raleway_bold"
+                            android:gravity="center"
+                            android:text="Prendido"
+                            android:textColor="@color/tinta2"
+                            android:textSize="11.5sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="4dp"
+                    android:fontFamily="@font/jetbrains_mono_medium"
+                    android:lineSpacingMultiplier="1.2"
+                    android:paddingHorizontal="2dp"
+                    android:text="cambian cómo responde: después de tocarlas hay que volver a sintonizar Kp y Kd"
+                    android:textColor="@color/alerta"
+                    android:textSize="10sp" />
+
             </LinearLayout>
 
         </ScrollView>
