@@ -187,15 +187,25 @@ class BluetoothLink(
             BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            g.writeCharacteristic(c, datos, tipo)
-        } else {
-            @Suppress("DEPRECATION")
-            c.writeType = tipo
-            @Suppress("DEPRECATION")
-            c.value = datos
-            @Suppress("DEPRECATION")
-            g.writeCharacteristic(c)
+        // Si el Bluetooth del celular se apaga, el servicio del sistema muere y escribir
+        // tira DeadObjectException: sin esto la app se cerraba sola en vez de avisar que
+        // se cortó. Para quien está en la pista es lo mismo que perder el robot.
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                g.writeCharacteristic(c, datos, tipo)
+            } else {
+                @Suppress("DEPRECATION")
+                c.writeType = tipo
+                @Suppress("DEPRECATION")
+                c.value = datos
+                @Suppress("DEPRECATION")
+                g.writeCharacteristic(c)
+            }
+        } catch (e: RuntimeException) {
+            Log.w(ETIQUETA, "no se pudo escribir, se da por cortada la conexión", e)
+            val estaba = conectado
+            cerrar()
+            alCambiarEstado(false, if (estaba) "Se cortó la conexión" else "No se pudo conectar")
         }
     }
 
