@@ -22,8 +22,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // Subirlo en cada versión que se reparta: si no sube, Android no la instala encima.
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
         resValue("string", "app_name", "Rengo Tuner")
     }
 
