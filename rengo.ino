@@ -31,7 +31,10 @@ const int SENSOR_6 = A2;  // Extremo Derecho   (+50 mm)
 
 // --- PERIFÉRICOS ---
 const int PIN_LED = A1;   // el diagrama decía A0, pero en la placa quedó en A1
-const int PIN_BOTON = 13;
+// Movido del 13 al 10: el 13 tiene el LED de la placa colgado con su resistencia a masa,
+// que tira la tensión para abajo, así que con INPUT_PULLUP el pin se lee en bajo siempre
+// (botón apretado) aunque no haya nadie tocándolo.
+const int PIN_BOTON = 10;
 
 // --- MÓDULO BLUETOOTH (HC-05 / HC-06 ZS-040) ---
 const int PIN_BT_RX = 12;  // va al TXD del módulo

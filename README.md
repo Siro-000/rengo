@@ -73,8 +73,8 @@ No se usan los pines 0 y 1 a propósito: son los del USB y entran en conflicto a
 | 3, 4, 5 | motor izquierdo (PWM, B, A) |
 | 6 | STBY del driver: en bajo no se mueve nada |
 | 7, 8, 9 | motor derecho (A, B, PWM) |
+| 10 | botón start/stop |
 | 11, 12 | Bluetooth (12 recibe, 11 transmite) |
-| 13 | botón start/stop |
 | A1 | LED |
 | A2–A7 | sensores 6 a 1 |
 
@@ -82,12 +82,12 @@ El driver es un **TB6612FNG**: cada motor lleva dos pines de sentido (A y B) má
 y el STBY habilita el chip entero. Los pines de PWM tienen que ser de los que el Nano puede
 modular (3, 5, 6, 9, 10, 11).
 
-**El pin 13 no sirve para el botón.** Es el único del Nano que ya trae algo conectado de
+**El botón va al pin 10, no al 13.** El 13 es el único del Nano que ya trae algo conectado de
 fábrica: el LED de la placa con su resistencia a masa, mucho más fuerte que la resistencia
-interna que usa `INPUT_PULLUP`. El pin queda clavado en 0 con el botón suelto y apretado, así
-que el programa no puede distinguir los dos estados y al encender cree que lo apretaste. En la
-placa de 2026 quedó ahí: hay que mover ese cable a un pin libre (el 2 o el 10) o ponerle una
-resistencia de 470 Ω a 1 kΩ hacia 5 V.
+interna que usa `INPUT_PULLUP`. Ahí el pin queda clavado en 0 con el botón suelto y apretado,
+así que el programa no puede distinguir los dos estados y al encender cree que lo apretaste.
+La placa de 2026 lo trae al 13: **hay que mover ese cable al pin 10**, que es lo que espera el
+firmware. El 10 puede hacer PWM, pero acá no se usa para eso, así que no molesta.
 
 ## Cargar el firmware
 
