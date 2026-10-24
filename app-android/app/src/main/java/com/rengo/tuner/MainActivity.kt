@@ -15,11 +15,16 @@ import android.bluetooth.le.ScanResult
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.graphics.drawable.LayerDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.TextUtils
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.View
@@ -32,6 +37,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.chip.ChipGroup
@@ -55,7 +61,11 @@ private data class Parametro(
 
 private enum class Estado { DESCONECTADO, BUSCANDO, CONECTANDO, ESPERANDO, SIN_RESPUESTA, CONECTADO }
 
-private enum class Pestana { SINTONIA, MODOS, REGISTRO }
+private enum class Pestana { SINTONIA, MODOS, REGISTRO, MOTORES }
+
+// Lo que hacía falta saber del robot cuando la conexión se cortó sola, para poder contarlo
+// en la pantalla que aparece después.
+private data class Perdida(val nombre: String?, val corriendo: Boolean)
 
 class MainActivity : AppCompatActivity() {
 
@@ -74,9 +84,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var historial: Historial
 
     // Vistas: se vuelven a buscar cada vez que se arma la pantalla (ver armarPantalla).
-    private lateinit var puntoEstado: View
-    private lateinit var tituloEstado: TextView
-    private lateinit var detalleEstado: TextView
+    private lateinit var puntoLogo: View
+    private lateinit var textoEstado: TextView
+    private lateinit var nombreModulo: TextView
+    private lateinit var barritas: List<View>
     private lateinit var botonConexion: TextView
     private lateinit var botonConectarGrande: TextView
     private lateinit var barrido: View
@@ -85,6 +96,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var vistaDesconectado: View
     private lateinit var vistaEsperando: View
     private lateinit var vistaSinRespuesta: View
+    private lateinit var vistaPerdida: View
+    private lateinit var nombrePerdida: TextView
+    private lateinit var cajaAndando: View
+    private lateinit var bandaSilencio: View
+    private lateinit var barraMarcha: View
+    private lateinit var barraPestanas: View
+    private lateinit var puntoCrono: View
+    private lateinit var textoCrono: TextView
+    private lateinit var ruedas: Map<Boolean, Rueda>
     private lateinit var pestanas: Map<Pestana, View>
     private lateinit var botonesPestana: Map<Pestana, View>
     private lateinit var nombreModo: TextView
@@ -109,6 +129,15 @@ class MainActivity : AppCompatActivity() {
     private var pestana = Pestana.SINTONIA
     private var corriendo = false
 
+    // Conectados al módulo pero sin respuesta del robot. Distinto de SIN_RESPUESTA: ahí
+    // nunca contestó y la pantalla entera lo explica; acá ya entramos y basta una banda.
+    private var silencio = false
+    private var perdida: Perdida? = null
+    private var invertidoIzq = false
+    private var invertidoDer = false
+    private val crono = Cronometro()
+    private var latidosPerdidos = 0
+
     // Si el robot contestó alguna vez en esta conexión, los casilleros muestran lo suyo.
     private var leyoDelRobot = false
     private var nombreConectado: String? = null
@@ -126,12 +155,44 @@ class MainActivity : AppCompatActivity() {
     // Solo se conoce la señal si se conectó desde el escaneo; al reengancharse por MAC no.
     private var potenciaConectado: Int? = null
 
+    // La hoja de módulos encontrados, para cerrarla sola si la conexión se cae mientras está abierta.
+    private var hojaEscaneo: com.google.android.material.bottomsheet.BottomSheetDialog? = null
+
     private var pulsoEstado: Animator? = null
     private var animacionBarrido: Animator? = null
     private var latidoMarcha: Animator? = null
+    private var latidoCrono: Animator? = null
     private var intentos = 0
     private val reintentarValores = Runnable { preguntar() }
     private val darPorPerdido = Runnable { pasarASinRespuesta() }
+
+    private val tickCrono = object : Runnable {
+        override fun run() {
+            pintarCrono()
+            principal.postDelayed(this, 100)
+        }
+    }
+
+    // Mientras el robot no conteste, se le vuelve a preguntar solo: casi siempre es que
+    // estaba arrancando y perdió la primera pregunta.
+    private val sondeo = object : Runnable {
+        override fun run() {
+            if (enlace.conectado) enlace.enviar("GET")
+            principal.postDelayed(this, ESPERA_SONDEO)
+        }
+    }
+
+    // Latido: si se pierden dos seguidos, el robot dejó de contestar aunque el módulo siga
+    // enganchado. Es lo que distingue "no llega" de "no hay nada que mandar".
+    private val latido = object : Runnable {
+        override fun run() {
+            if (latidosPerdidos >= LATIDOS_PARA_SILENCIO) marcarSilencio()
+            latidosPerdidos++
+            if (enlace.conectado) enlace.enviar("PING")
+            principal.postDelayed(this, ESPERA_LATIDO)
+        }
+    }
+
     private val restaurarGrabar = Runnable { pintarGrabar(hecho = false) }
     private val ocultarAviso = Runnable {
         aviso.animate().alpha(0f).setDuration(150).withEndAction { aviso.visibility = View.GONE }.start()
@@ -154,14 +215,17 @@ class MainActivity : AppCompatActivity() {
         enlace = BluetoothLink(
             contexto = this,
             alRecibirLinea = { linea ->
+                val lectura = RespuestaRobot.leer(linea)
                 when {
-                    linea.contains("VEL=") -> volcarValores(linea)
+                    lectura != null -> volcarValores(lectura)
+                    // El latido no se anota: una línea cada tres segundos taparía todo.
+                    RespuestaRobot.esPong(linea) -> volvioAContestar()
                     linea.startsWith("OK GUARDADO") -> {
                         historial.respuesta(linea)
                         mostrarGrabado("El robot confirmó", confirmado = true)
                     }
                     // "OK KP=0.5000": el cambio ya está anotado, repetirlo solo mete ruido.
-                    CONFIRMACION.matches(linea) -> Unit
+                    RespuestaRobot.esConfirmacion(linea) -> volvioAContestar()
                     else -> historial.respuesta(linea)
                 }
             },
@@ -212,9 +276,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         nocheAplicada = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
 
-        puntoEstado = findViewById(R.id.puntoEstado)
-        tituloEstado = findViewById(R.id.tituloEstado)
-        detalleEstado = findViewById(R.id.detalleEstado)
+        puntoLogo = findViewById(R.id.puntoLogo)
+        textoEstado = findViewById(R.id.textoEstado)
+        nombreModulo = findViewById(R.id.nombreModulo)
+        barritas = listOf(findViewById(R.id.senal1), findViewById(R.id.senal2), findViewById(R.id.senal3))
         botonConexion = findViewById(R.id.botonConexion)
         botonConectarGrande = findViewById(R.id.botonConectarGrande)
         barrido = findViewById(R.id.barrido)
@@ -223,6 +288,14 @@ class MainActivity : AppCompatActivity() {
         vistaDesconectado = findViewById(R.id.vistaDesconectado)
         vistaEsperando = findViewById(R.id.vistaEsperando)
         vistaSinRespuesta = findViewById(R.id.vistaSinRespuesta)
+        vistaPerdida = findViewById(R.id.vistaPerdida)
+        nombrePerdida = findViewById(R.id.nombrePerdida)
+        cajaAndando = findViewById(R.id.cajaAndando)
+        bandaSilencio = findViewById(R.id.bandaSilencio)
+        barraMarcha = findViewById(R.id.barraMarcha)
+        barraPestanas = findViewById(R.id.barraPestanas)
+        puntoCrono = findViewById(R.id.puntoCrono)
+        textoCrono = findViewById(R.id.textoCrono)
         nombreModo = findViewById(R.id.nombreModo)
         tituloModos = findViewById(R.id.tituloModos)
         listaModos = findViewById(R.id.listaModos)
@@ -249,14 +322,21 @@ class MainActivity : AppCompatActivity() {
         pestanas = mapOf(
             Pestana.SINTONIA to findViewById(R.id.pestanaSintonia),
             Pestana.MODOS to findViewById(R.id.pestanaModos),
-            Pestana.REGISTRO to findViewById(R.id.pestanaRegistro)
+            Pestana.REGISTRO to findViewById(R.id.pestanaRegistro),
+            Pestana.MOTORES to findViewById(R.id.pestanaMotores)
         )
         botonesPestana = mapOf(
             Pestana.SINTONIA to findViewById(R.id.pestanaBotonSintonia),
             Pestana.MODOS to findViewById(R.id.pestanaBotonModos),
-            Pestana.REGISTRO to findViewById(R.id.pestanaBotonRegistro)
+            Pestana.REGISTRO to findViewById(R.id.pestanaBotonRegistro),
+            Pestana.MOTORES to findViewById(R.id.pestanaBotonMotores)
         )
-        val etiquetas = mapOf(Pestana.SINTONIA to "Sintonía", Pestana.MODOS to "Modos", Pestana.REGISTRO to "Registro")
+        val etiquetas = mapOf(
+            Pestana.SINTONIA to "Sintonía",
+            Pestana.MODOS to "Modos",
+            Pestana.REGISTRO to "Registro",
+            Pestana.MOTORES to "Motores"
+        )
         for ((p, boton) in botonesPestana) {
             boton.findViewById<TextView>(R.id.etiqueta).text = etiquetas.getValue(p)
             boton.setOnClickListener { irA(p) }
@@ -272,6 +352,27 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.botonLimpiarHistorial).setOnClickListener { confirmarLimpiarHistorial() }
         findViewById<View>(R.id.botonReintentar).setOnClickListener { pedirValores() }
         findViewById<View>(R.id.botonSeguirIgual).setOnClickListener { seguirSinRespuesta() }
+        findViewById<View>(R.id.botonReintentarBanda).setOnClickListener { pedirValores() }
+        findViewById<View>(R.id.botonBuscarDeNuevo).setOnClickListener {
+            perdida = null
+            verificarPermisoYConectar()
+        }
+        findViewById<View>(R.id.botonReconectar).setOnClickListener { reconectar() }
+
+        ruedas = mapOf(
+            true to Rueda(
+                findViewById(R.id.ruedaIzq), findViewById(R.id.flechaIzq), findViewById(R.id.estadoIzq),
+                findViewById(R.id.normalIzq), findViewById(R.id.invertidoIzq)
+            ),
+            false to Rueda(
+                findViewById(R.id.ruedaDer), findViewById(R.id.flechaDer), findViewById(R.id.estadoDer),
+                findViewById(R.id.normalDer), findViewById(R.id.invertidoDer)
+            )
+        )
+        for ((esIzquierdo, rueda) in ruedas) {
+            rueda.normal.setOnClickListener { pedirInversion(esIzquierdo, invertir = false) }
+            rueda.invertido.setOnClickListener { pedirInversion(esIzquierdo, invertir = true) }
+        }
 
         botonGrabar.setOnClickListener { if (leyoDelRobot) grabar() else avisarQueGrabaACiegas() }
         // Un solo botón: manda lo contrario de lo que el robot está haciendo.
@@ -279,8 +380,19 @@ class MainActivity : AppCompatActivity() {
             val arrancando = !corriendo
             if (!mandar(if (arrancando) "START" else "STOP")) return@setOnClickListener
             corriendo = arrancando
-            historial.evento(if (arrancando) "▶ arrancar" else "■ parar")
+            if (arrancando) {
+                crono.arrancar()
+                historial.evento("▶ arrancar")
+                principal.post(tickCrono)
+            } else {
+                val duracion = crono.parar()
+                principal.removeCallbacks(tickCrono)
+                // Sin duración es que el robot ya venía andando cuando nos conectamos.
+                val tiempo = duracion?.let { " · ${Cronometro.formatoHistorial(it)}" } ?: ""
+                historial.evento("■ parar$tiempo", if (duracion == null) Historial.Tipo.EVENTO else Historial.Tipo.TIEMPO)
+            }
             pintarMarcha()
+            pintarCrono()
         }
 
         historial.mostrarEn(
@@ -293,6 +405,13 @@ class MainActivity : AppCompatActivity() {
         pintarEstado()
         mostrarContenido(animar = false)
         pintarMarcha()
+        pintarMotores()
+        pintarCrono()
+
+        // Si el robot venía andando, el cronómetro tiene que seguir corriendo después de
+        // rearmar la pantalla por un cambio de tema.
+        principal.removeCallbacks(tickCrono)
+        if (crono.corriendo) principal.post(tickCrono)
     }
 
     private fun armarFilas() {
@@ -349,15 +468,26 @@ class MainActivity : AppCompatActivity() {
 
     // Sin conexión las pestañas siguen ahí, pero el contenido es siempre el cartel.
     private fun mostrarContenido(animar: Boolean = true) {
-        val visible = when (estado) {
-            Estado.CONECTADO -> pestanas.getValue(pestana)
-            Estado.ESPERANDO -> vistaEsperando
-            Estado.SIN_RESPUESTA -> vistaSinRespuesta
+        val visible = when {
+            estado == Estado.CONECTADO -> pestanas.getValue(pestana)
+            estado == Estado.ESPERANDO -> vistaEsperando
+            estado == Estado.SIN_RESPUESTA -> vistaSinRespuesta
+            perdida != null -> vistaPerdida
             else -> vistaDesconectado
         }
-        for (v in pestanas.values + listOf(vistaDesconectado, vistaEsperando, vistaSinRespuesta)) {
+        for (v in pestanas.values + listOf(vistaDesconectado, vistaEsperando, vistaSinRespuesta, vistaPerdida)) {
             if (v !== visible) v.visibility = View.GONE
         }
+        if (visible === vistaPerdida) pintarPerdida()
+
+        // Las barras de abajo solo tienen sentido con el robot a tiro. La excepción es el
+        // robot andando sin respuesta: ahí hay que poder mandarle STOP igual.
+        val hayPestanas = estado == Estado.CONECTADO
+        val hayMarcha = hayPestanas || (estado == Estado.SIN_RESPUESTA && corriendo)
+        mostrarBarra(barraPestanas, hayPestanas, animar)
+        mostrarBarra(barraMarcha, hayMarcha, animar)
+        mostrarBanda(estado == Estado.CONECTADO && silencio, animar)
+
         if (visible.visibility != View.VISIBLE) {
             visible.visibility = View.VISIBLE
             if (animar) {
@@ -376,6 +506,57 @@ class MainActivity : AppCompatActivity() {
                 .setTextColor(color(if (activa) R.color.chrome_tinta else R.color.chrome_detalle))
         }
     }
+
+    private fun mostrarBarra(barra: View, visible: Boolean, animar: Boolean) {
+        if (visible == (barra.visibility == View.VISIBLE)) return
+        barra.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible && animar) {
+            barra.alpha = 0f
+            barra.animate().alpha(1f).setDuration(DURACION_BARRA).start()
+        }
+    }
+
+    private fun mostrarBanda(visible: Boolean, animar: Boolean) {
+        if (visible == (bandaSilencio.visibility == View.VISIBLE)) return
+        bandaSilencio.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible && animar) {
+            bandaSilencio.alpha = 0f
+            bandaSilencio.translationY = dp(16f)
+            bandaSilencio.animate().alpha(1f).translationY(0f).setDuration(DURACION_BARRA)
+                .setInterpolator(DecelerateInterpolator()).start()
+        }
+    }
+
+    // ----- Cronómetro -----
+
+    private fun pintarCrono() {
+        val partes = Cronometro.formatoPantalla(crono.transcurrido())
+        val texto = SpannableStringBuilder()
+        // El tramo apagado son los ceros de adelante: se ven, pero no compiten con el número
+        // que importa. La décima va más chica para que no robe atención.
+        texto.append(partes.apagado, colorTexto(R.color.tinta3, 140), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        texto.append(partes.vivo, colorTexto(if (corriendo) R.color.dato else R.color.tinta), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        val desde = texto.length
+        texto.append(partes.decima)
+        val colorDecima = when {
+            partes.vivo.isEmpty() -> color(R.color.tinta3)
+            corriendo -> color(R.color.dato)
+            else -> color(R.color.tinta2)
+        }
+        texto.setSpan(ForegroundColorSpan(colorDecima), desde, texto.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        texto.setSpan(RelativeSizeSpan(0.64f), desde, texto.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        textoCrono.text = texto
+
+        puntoCrono.animate().alpha(if (corriendo) 1f else 0f).setDuration(200).start()
+        if (corriendo) latirCrono() else {
+            latidoCrono?.cancel()
+            latidoCrono = null
+        }
+    }
+
+    private fun colorTexto(id: Int, alfa: Int = 255) =
+        ForegroundColorSpan(ColorUtils.setAlphaComponent(color(id), alfa))
 
     // ----- Tema -----
 
@@ -403,22 +584,37 @@ class MainActivity : AppCompatActivity() {
     // ----- Estado de la conexión -----
 
     private fun pintarEstado() {
-        val colorPunto = when (estado) {
-            Estado.CONECTADO -> R.color.marca
-            Estado.DESCONECTADO -> R.color.punto_desconectado
-            else -> R.color.alerta
+        // Un solo renglón dice todo: qué está pasando y, si estamos conectados, con quién.
+        val conModulo = estado == Estado.CONECTADO && !silencio
+        val colorEstado = when {
+            conModulo -> R.color.marca
+            estado == Estado.DESCONECTADO && perdida != null -> R.color.chrome_stop
+            estado == Estado.DESCONECTADO -> R.color.chrome_subtitulo
+            else -> R.color.chrome_alerta
         }
-        puntoEstado.backgroundTintList = ColorStateList.valueOf(color(colorPunto))
+        // Solo se tiñe el relleno: el anillo tiene que quedar del color del chrome para
+        // que el punto se vea despegado del logo.
+        val colorPunto =
+            color(if (estado == Estado.DESCONECTADO && perdida == null) R.color.punto_desconectado else colorEstado)
+        (puntoLogo.background as? LayerDrawable)
+            ?.findDrawableByLayerId(R.id.relleno)?.setTint(colorPunto)
+            ?: run { puntoLogo.backgroundTintList = ColorStateList.valueOf(colorPunto) }
 
-        tituloEstado.text = when (estado) {
-            Estado.DESCONECTADO -> "Desconectado"
-            Estado.BUSCANDO -> "Buscando módulos…"
-            Estado.CONECTANDO -> tituloConectando
-            Estado.ESPERANDO -> "Esperando al robot…"
-            Estado.SIN_RESPUESTA -> "El robot no contesta"
-            Estado.CONECTADO -> "Conectado"
+        textoEstado.text = when {
+            estado == Estado.DESCONECTADO && perdida != null -> "Conexión perdida"
+            estado == Estado.DESCONECTADO -> "Desconectado"
+            estado == Estado.BUSCANDO -> "Buscando módulos…"
+            estado == Estado.CONECTANDO -> tituloConectando
+            estado == Estado.ESPERANDO -> "Esperando al robot…"
+            estado == Estado.SIN_RESPUESTA -> "El robot no contesta"
+            silencio -> "Sin respuesta"
+            else -> "Conectado"
         }
-        detalleEstado.text = detalle
+        textoEstado.setTextColor(color(colorEstado))
+
+        nombreModulo.text = nombreConectado.orEmpty()
+        nombreModulo.visibility = if (conModulo) View.VISIBLE else View.GONE
+        pintarSenal(conModulo)
 
         // Ya enganchados al módulo, el botón suelta la conexión; antes de eso, cancela.
         val enlazado = estado == Estado.CONECTADO || estado == Estado.SIN_RESPUESTA
@@ -442,14 +638,27 @@ class MainActivity : AppCompatActivity() {
         if (ocupado) latirPunto() else {
             pulsoEstado?.cancel()
             pulsoEstado = null
-            puntoEstado.alpha = 1f
-            puntoEstado.scaleX = 1f
-            puntoEstado.scaleY = 1f
+            puntoLogo.alpha = 1f
+            puntoLogo.scaleX = 1f
+            puntoLogo.scaleY = 1f
         }
         if (ocupado) barrer() else {
             animacionBarrido?.cancel()
             animacionBarrido = null
             barrido.visibility = View.GONE
+        }
+    }
+
+    // Tres barritas que valen más que un número en dBm: de un vistazo se ve si el robot
+    // está cerca. Al reengancharse por MAC no sabemos la potencia, así que van apagadas.
+    private fun pintarSenal(conModulo: Boolean) {
+        val potencia = potenciaConectado
+        val umbrales = listOf(-95, -80, -60)
+        for ((i, barrita) in barritas.withIndex()) {
+            barrita.visibility = if (conModulo) View.VISIBLE else View.GONE
+            val encendida = potencia != null && potencia > umbrales[i]
+            barrita.backgroundTintList =
+                ColorStateList.valueOf(color(if (encendida) R.color.marca else R.color.barrita_apagada))
         }
     }
 
@@ -495,7 +704,21 @@ class MainActivity : AppCompatActivity() {
             else -> {
                 // Un aviso de progreso que llegó después de cancelar a mano: ya no importa.
                 if (estado == Estado.DESCONECTADO) return
-                if (estado == Estado.CONECTADO) historial.evento("── $mensaje")
+
+                // Se cortó sin que lo pidiéramos: hay que contarlo, y sobre todo avisar si
+                // el robot quedó andando, porque ya no se le puede mandar STOP.
+                val estabaConectado = estado == Estado.CONECTADO || estado == Estado.SIN_RESPUESTA
+                if (estabaConectado && !cortadoAMano) {
+                    perdida = Perdida(nombreConectado, corriendo)
+                    historial.evento("── Se perdió la conexión con ${nombreConectado ?: "el robot"}", Historial.Tipo.ERROR)
+                    if (corriendo) {
+                        crono.descartar()
+                        historial.evento("corrida cortada · se perdió la conexión")
+                    }
+                    hojaEscaneo?.dismiss()
+                } else if (estado == Estado.CONECTADO) {
+                    historial.evento("── $mensaje")
+                }
                 pasarADesconectado(mensaje.replaceFirstChar { it.lowercase() })
                 return
             }
@@ -508,9 +731,66 @@ class MainActivity : AppCompatActivity() {
     private fun pasarADesconectado(motivo: String) {
         principal.removeCallbacks(reintentarValores)
         principal.removeCallbacks(darPorPerdido)
+        principal.removeCallbacks(sondeo)
+        principal.removeCallbacks(latido)
+        principal.removeCallbacks(tickCrono)
         estado = Estado.DESCONECTADO
         detalle = motivo
         corriendo = false
+        silencio = false
+        pintarEstado()
+        mostrarContenido()
+        pintarMarcha()
+        pintarCrono()
+    }
+
+    // ----- Conexión perdida -----
+
+    private fun pintarPerdida() {
+        val corte = perdida ?: return
+        nombrePerdida.text = "${corte.nombre ?: "El robot"} dejó de responder: puede haberse " +
+            "alejado, apagado o quedado sin batería."
+        cajaAndando.visibility = if (corte.corriendo) View.VISIBLE else View.GONE
+    }
+
+    // Volver al mismo módulo sin escanear: ya sabemos su MAC y es lo que el usuario quiere
+    // el 99% de las veces cuando el robot se fue de rango un segundo.
+    private fun reconectar() {
+        val mac = preferencias.getString(CLAVE_MODULO, null)
+        if (mac == null) {
+            verificarPermisoYConectar()
+            return
+        }
+        val adaptador = obtenerAdaptador()
+        if (adaptador == null || !adaptador.isEnabled) {
+            avisar("Prendé el Bluetooth del celular")
+            return
+        }
+        perdida = null
+        cortadoAMano = false
+        potenciaConectado = null
+        enlace.conectar(adaptador.getRemoteDevice(mac), "Reconectando...")
+    }
+
+    // ----- El robot dejó de contestar -----
+
+    private fun marcarSilencio() {
+        if (silencio) return
+        silencio = true
+        historial.evento("el robot dejó de contestar", Historial.Tipo.ERROR)
+        pintarEstado()
+        mostrarContenido()
+    }
+
+    private fun volvioAContestar() {
+        latidosPerdidos = 0
+        if (!silencio && estado != Estado.SIN_RESPUESTA) return
+
+        silencio = false
+        if (estado == Estado.SIN_RESPUESTA) estado = Estado.CONECTADO
+        principal.removeCallbacks(sondeo)
+        historial.respuesta("el robot volvió a contestar")
+        avisar("El robot volvió a contestar")
         pintarEstado()
         mostrarContenido()
         pintarMarcha()
@@ -521,6 +801,7 @@ class MainActivity : AppCompatActivity() {
     // Se pregunta varias veces porque el módulo arranca antes que el Arduino: si la app se
     // engancha mientras el robot todavía está encendiendo, la primera pregunta se pierde.
     private fun pedirValores() {
+        principal.removeCallbacks(sondeo)
         intentos = 0
         estado = Estado.ESPERANDO
         detalle = listOfNotNull(nombreConectado, "pidiendo sus valores").joinToString(" · ")
@@ -542,6 +823,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun pasarASinRespuesta() {
         estado = Estado.SIN_RESPUESTA
+        // Sigue preguntando sola: lo más común es que el robot aparezca a los segundos.
+        principal.postDelayed(sondeo, ESPERA_SONDEO)
         detalle = listOfNotNull(nombreConectado, "le pregunté $intentos veces").joinToString(" · ")
         pintarEstado()
         mostrarContenido()
@@ -553,10 +836,68 @@ class MainActivity : AppCompatActivity() {
         principal.removeCallbacks(reintentarValores)
         principal.removeCallbacks(darPorPerdido)
         estado = Estado.CONECTADO
+        silencio = true
         detalle = detalleConectado()
+        // Entra igual, pero la app sigue preguntando sola: la mayoría de las veces el robot
+        // aparece a los segundos y no hay que acordarse de tocar nada.
+        principal.postDelayed(sondeo, ESPERA_SONDEO)
         pintarEstado()
         mostrarContenido()
         pintarMarcha()
+    }
+
+    // ----- Motores -----
+
+    private class Rueda(
+        val rueda: View,
+        val flecha: TextView,
+        val estado: TextView,
+        val normal: TextView,
+        val invertido: TextView
+    )
+
+    private fun pedirInversion(esIzquierdo: Boolean, invertir: Boolean) {
+        val actual = if (esIzquierdo) invertidoIzq else invertidoDer
+        if (actual == invertir) return
+
+        val clave = if (esIzquierdo) "INVI" else "INVD"
+        if (!mandar("$clave=${if (invertir) 1 else 0}")) return
+
+        if (esIzquierdo) invertidoIzq = invertir else invertidoDer = invertir
+        val lado = if (esIzquierdo) "izquierdo" else "derecho"
+        historial.evento("motor $lado · ${if (invertir) "invertido" else "normal"}")
+        vibrar()
+        pintarMotores()
+    }
+
+    private fun pintarMotores() {
+        for ((esIzquierdo, rueda) in ruedas) {
+            val invertido = if (esIzquierdo) invertidoIzq else invertidoDer
+            val tinta = color(if (invertido) R.color.alerta else R.color.dato)
+
+            rueda.rueda.setBackgroundResource(if (invertido) R.drawable.rueda_invertida else R.drawable.rueda)
+            rueda.flecha.animate().rotation(if (invertido) 180f else 0f).setDuration(300).start()
+            rueda.flecha.setTextColor(tinta)
+            rueda.estado.text = if (invertido) "INVERTIDO" else "NORMAL"
+            rueda.estado.setTextColor(tinta)
+
+            pintarSegmento(rueda.normal, elegido = !invertido, R.drawable.segmento_normal, R.color.marca_tinta)
+            pintarSegmento(rueda.invertido, elegido = invertido, R.drawable.segmento_invertido, R.color.alerta_tinta)
+        }
+    }
+
+    private fun pintarSegmento(boton: TextView, elegido: Boolean, fondo: Int, tinta: Int) {
+        boton.setBackgroundResource(if (elegido) fondo else R.drawable.segmento_apagado)
+        boton.setTextColor(color(if (elegido) tinta else R.color.tinta2))
+    }
+
+    private fun vibrar() {
+        val vibracion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.CONFIRM
+        } else {
+            HapticFeedbackConstants.VIRTUAL_KEY
+        }
+        botonMarcha.performHapticFeedback(vibracion)
     }
 
     // Mientras el robot no conteste, lo dice acá en vez de la MAC y la señal: los valores
@@ -627,6 +968,8 @@ class MainActivity : AppCompatActivity() {
     // El ✓ queda reservado para cuando el robot contesta OK GUARDADO: al mandar la orden
     // va una flecha, porque sin respuesta no hay forma de saber si la EEPROM se escribió.
     private fun mostrarGrabado(texto: String, confirmado: Boolean) {
+        // Solo el temporizador del botón: grabar no corta el sondeo ni el latido, porque si
+        // no la app se queda ciega justo después de hablarle al robot.
         principal.removeCallbacks(restaurarGrabar)
         pintarGrabar(hecho = true)
         iconoGrabar.text = if (confirmado) "✓" else "→"
@@ -659,9 +1002,17 @@ class MainActivity : AppCompatActivity() {
 
     // Punto de estado: late mientras busca o conecta.
     private fun latirPunto() {
-        if (pulsoEstado != null) return
-        pulsoEstado = ObjectAnimator.ofPropertyValuesHolder(
-            puntoEstado,
+        if (pulsoEstado == null) pulsoEstado = hacerLatir(puntoLogo)
+    }
+
+    // El punto del cronómetro late igual que el del estado: es el mismo "algo está pasando".
+    private fun latirCrono() {
+        if (latidoCrono == null) latidoCrono = hacerLatir(puntoCrono)
+    }
+
+    private fun hacerLatir(vista: View): Animator =
+        ObjectAnimator.ofPropertyValuesHolder(
+            vista,
             PropertyValuesHolder.ofFloat(View.ALPHA, 1f, 0.25f, 1f),
             PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 0.7f, 1f),
             PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 0.7f, 1f)
@@ -671,7 +1022,6 @@ class MainActivity : AppCompatActivity() {
             interpolator = AccelerateDecelerateInterpolator()
             start()
         }
-    }
 
     // Barra de escaneo: un tramo del 40% que cruza de punta a punta.
     private fun barrer() {
@@ -714,6 +1064,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Solo lo que pinta: el sondeo y el latido no se tocan, porque rearmar la pantalla por
+    // un cambio de tema dejaría a la app sin preguntarle nada más al robot.
     private fun detenerAnimaciones() {
         pulsoEstado?.cancel()
         animacionBarrido?.cancel()
@@ -829,24 +1181,29 @@ class MainActivity : AppCompatActivity() {
     private fun formatear(valor: Double, decimales: Int) =
         String.format(Locale.US, "%.${decimales}f", valor)
 
-    private fun volcarValores(linea: String) {
-        for (trozo in linea.trim().split(" ")) {
-            val partes = trozo.split("=")
-            if (partes.size != 2) continue
-
-            // El robot informa también si está andando. Con un solo botón para arrancar y
-            // parar, hay que creerle a él: si lo arrancaron con el botón del robot, la app
-            // tiene que mostrar "Parar" igual.
-            if (partes[0] == "EST") {
-                corriendo = partes[1] == "RUN"
-                pintarMarcha()
-                continue
-            }
-
-            val p = parametros.find { it.clave == partes[0] } ?: continue
-            val valor = partes[1].toDoubleOrNull() ?: continue
+    private fun volcarValores(lectura: RespuestaRobot.Lectura) {
+        for (p in parametros) {
+            val valor = lectura.valores[p.clave]?.toDoubleOrNull() ?: continue
             campos[p.clave]?.setText(formatear(valor, p.decimales))
         }
+
+        // El robot informa también si está andando. Con un solo botón para arrancar y
+        // parar, hay que creerle a él: si lo arrancaron con el botón del robot, la app
+        // tiene que mostrar "Parar" igual. Ojo que no arranca el cronómetro: no sabemos
+        // desde cuándo viene corriendo.
+        lectura.andando?.let {
+            corriendo = it
+            if (!it) principal.removeCallbacks(tickCrono)
+            pintarMarcha()
+            pintarCrono()
+        }
+
+        // El firmware viejo no manda la inversión; en ese caso se deja lo que ya había.
+        lectura.invertidoIzq?.let { invertidoIzq = it }
+        lectura.invertidoDer?.let { invertidoDer = it }
+        pintarMotores()
+
+        volvioAContestar()
 
         // Contestó: se cortan los reintentos y recién acá la pantalla pasa a Conectado.
         if (!leyoDelRobot) {
@@ -855,6 +1212,7 @@ class MainActivity : AppCompatActivity() {
             principal.removeCallbacks(darPorPerdido)
             estado = Estado.CONECTADO
             detalle = detalleConectado()
+            principal.postDelayed(latido, ESPERA_LATIDO)
             pintarEstado()
             mostrarContenido()
             pintarMarcha()
@@ -1123,7 +1481,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        abrirHoja(R.layout.hoja_escaneo) { vista, hoja ->
+        hojaEscaneo = abrirHoja(R.layout.hoja_escaneo) { vista, hoja ->
             val lista = vista.findViewById<LinearLayout>(R.id.listaHallazgos)
             hallazgos.forEachIndexed { indice, h ->
                 val fila = layoutInflater.inflate(R.layout.fila_hallazgo, lista, false)
@@ -1194,6 +1552,10 @@ class MainActivity : AppCompatActivity() {
         const val DURACION_BUSQUEDA = 5000L
         const val DURACION_PESTANA = 180L
         const val DURACION_AVISO = 2400L
+        const val DURACION_BARRA = 200L
+        const val ESPERA_SONDEO = 2000L
+        const val ESPERA_LATIDO = 3000L
+        const val LATIDOS_PARA_SILENCIO = 2
         const val DURACION_GRABADO = 2000L
         const val CLAVE_MODULO = "modulo"
         const val CLAVE_NOMBRE = "nombre_modulo"
@@ -1203,6 +1565,5 @@ class MainActivity : AppCompatActivity() {
         const val SIN_RESPUESTA = "sin respuesta del robot"
         const val INTENTOS = 4
         const val ESPERA_INTENTO = 2500L
-        val CONFIRMACION = Regex("OK [A-Z]+=.*")
     }
 }

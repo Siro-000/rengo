@@ -15,11 +15,11 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <!-- Sin elipsis y sin peso: si falta lugar se recorta la descripción, nunca el nombre. -->
         <TextView
             android:id="@+id/nombreParametro"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
             android:fontFamily="@font/raleway_bold"
             android:maxLines="1"
             android:textColor="@color/tinta"
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:ellipsize="start"
+            android:ellipsize="end"
             android:fontFamily="@font/jetbrains_mono_medium"
             android:gravity="end"
             android:maxLines="1"
@@ -63,7 +63,7 @@
         <TextView
             android:id="@+id/botonMenos"
             android:layout_width="62dp"
-            android:layout_height="47dp"
+            android:layout_height="42dp"
             android:background="@drawable/boton_ctrl"
             android:clickable="true"
             android:focusable="true"
@@ -118,7 +118,7 @@
         <TextView
             android:id="@+id/botonMas"
             android:layout_width="62dp"
-            android:layout_height="47dp"
+            android:layout_height="42dp"
             android:background="@drawable/boton_ctrl"
             android:clickable="true"
             android:focusable="true"

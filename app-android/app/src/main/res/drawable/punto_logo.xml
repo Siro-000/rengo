@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dos capas en vez de un borde: el anillo del color del chrome despega el punto del
+     logo, y el relleno se tiñe aparte desde el código según el estado. Con un stroke
+     común, el tinte le ganaba también al anillo y el punto se pegaba al logo. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/chrome" />
+        </shape>
+    </item>
+    <item
+        android:id="@+id/relleno"
+        android:bottom="3dp"
+        android:left="3dp"
+        android:right="3dp"
+        android:top="3dp">
+        <shape android:shape="oval">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+</layer-list>

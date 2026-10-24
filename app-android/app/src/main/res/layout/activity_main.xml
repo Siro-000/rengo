@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- clipChildren apagado hasta arriba: el halo de Arrancar se dibuja por fuera del botón.
-     La raíz toma el foco para que, al terminar de escribir un valor, el foco no salte
-     al primer casillero y deje el teclado abierto. -->
+<!-- clipChildren apagado hasta arriba: el halo de Arrancar y el punto del logo se dibujan
+     por fuera de sus padres. La raíz toma el foco para que, al terminar de escribir un
+     valor, el foco no salte al primer casillero y deje el teclado abierto. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,11 +11,13 @@
     android:focusableInTouchMode="true"
     android:orientation="vertical">
 
-    <!-- ===== Chrome: marca, tema y estado de la conexión ===== -->
+    <!-- ===== Chrome: marca, estado de la conexión, tema y conectar, todo en una fila ===== -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/chrome"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
         android:paddingTop="12dp">
@@ -23,19 +25,41 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:paddingBottom="12dp">
 
-            <TextView
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:background="@drawable/logo_marca"
-                android:fontFamily="@font/jetbrains_mono_bold"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:text="R"
-                android:textColor="@color/marca_tinta"
-                android:textSize="17sp" />
+            <!-- El punto se sale 4dp del logo por abajo y por la derecha, así que ni el
+                 cuadro ni la fila pueden recortar. -->
+            <FrameLayout
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:clipChildren="false">
+
+                <TextView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/logo_marca"
+                    android:fontFamily="@font/jetbrains_mono_bold"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="R"
+                    android:textColor="@color/marca_tinta"
+                    android:textSize="18sp" />
+
+                <View
+                    android:id="@+id/puntoLogo"
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="-4dp"
+                    android:layout_marginBottom="-4dp"
+                    android:background="@drawable/punto_logo"
+                    android:backgroundTint="@color/punto_desconectado" />
+
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -49,30 +73,86 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/raleway_extrabold"
                     android:includeFontPadding="false"
-                    android:letterSpacing="0.14"
+                    android:letterSpacing="0.13"
                     android:text="RENGO"
                     android:textColor="@color/chrome_tinta"
-                    android:textSize="17sp" />
+                    android:textSize="15sp" />
 
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/jetbrains_mono_medium"
-                    android:includeFontPadding="false"
-                    android:letterSpacing="0.04"
-                    android:maxLines="1"
-                    android:text="tuner · seguidor de línea · CdR FIUBA"
-                    android:textColor="@color/chrome_subtitulo"
-                    android:textSize="10.5sp" />
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/textoEstado"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/raleway_semibold"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="Desconectado"
+                        android:textColor="@color/chrome_subtitulo"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/nombreModulo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="7dp"
+                        android:fontFamily="@font/jetbrains_mono_medium"
+                        android:includeFontPadding="false"
+                        android:textColor="@color/chrome_subtitulo"
+                        android:textSize="10.5sp"
+                        android:visibility="gone" />
+
+                    <!-- Las barritas van en su propia fila para que se alineen abajo entre
+                         ellas, como las de cobertura del teléfono, y no al medio del estado. -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="10dp"
+                        android:layout_marginStart="7dp"
+                        android:gravity="bottom"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:id="@+id/senal1"
+                            android:layout_width="3dp"
+                            android:layout_height="4dp"
+                            android:background="@drawable/barrita"
+                            android:backgroundTint="@color/barrita_apagada"
+                            android:visibility="gone" />
+
+                        <View
+                            android:id="@+id/senal2"
+                            android:layout_width="3dp"
+                            android:layout_height="7dp"
+                            android:layout_marginStart="2dp"
+                            android:background="@drawable/barrita"
+                            android:backgroundTint="@color/barrita_apagada"
+                            android:visibility="gone" />
+
+                        <View
+                            android:id="@+id/senal3"
+                            android:layout_width="3dp"
+                            android:layout_height="10dp"
+                            android:layout_marginStart="2dp"
+                            android:background="@drawable/barrita"
+                            android:backgroundTint="@color/barrita_apagada"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
             </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/botonTema"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
                 android:layout_marginStart="11dp"
                 android:background="@drawable/boton_tema"
                 android:clickable="true"
@@ -80,73 +160,23 @@
 
                 <ImageView
                     android:id="@+id/iconoTema"
-                    android:layout_width="17dp"
-                    android:layout_height="17dp"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
                     android:layout_gravity="center"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_contraste" />
 
             </FrameLayout>
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="10dp"
-            android:paddingBottom="11dp">
-
-            <View
-                android:id="@+id/puntoEstado"
-                android:layout_width="9dp"
-                android:layout_height="9dp"
-                android:background="@drawable/punto" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="10dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tituloEstado"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/raleway_bold"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:text="Desconectado"
-                    android:textColor="@color/chrome_tinta"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/detalleEstado"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:ellipsize="end"
-                    android:fontFamily="@font/jetbrains_mono_medium"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:text="el robot tiene que estar prendido"
-                    android:textColor="@color/chrome_detalle"
-                    android:textSize="10.5sp" />
-
-            </LinearLayout>
-
             <TextView
                 android:id="@+id/botonConexion"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="11dp"
                 android:background="@drawable/boton_conectar"
                 android:fontFamily="@font/raleway_bold"
                 android:gravity="center"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="10dp"
+                android:paddingHorizontal="14dp"
                 android:text="Conectar"
                 android:textColor="@color/marca_tinta"
                 android:textSize="12.5sp" />
@@ -168,6 +198,84 @@
                 android:background="@color/dato" />
 
         </FrameLayout>
+
+    </LinearLayout>
+
+    <!-- Aviso de silencio: va arriba del contenido y empuja la pestaña hacia abajo en vez
+         de taparla, porque si no se come la fila MODO justo cuando hay que desconfiar
+         de los valores. Se ve en las cuatro pestañas. -->
+    <LinearLayout
+        android:id="@+id/bandaSilencio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="8dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/banda_silencio"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="11dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp">
+            <TextView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:background="@drawable/icono_banda"
+                android:fontFamily="@font/jetbrains_mono_bold"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="!"
+                android:textColor="@color/alerta"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/raleway_bold"
+                    android:text="El robot no contesta"
+                    android:textColor="@color/tinta"
+                    android:textSize="12.5sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="@font/lato_regular"
+                    android:text="Los cambios pueden no estar llegando."
+                    android:textColor="@color/tinta2"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/botonReintentarBanda"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/boton_banda"
+                android:clickable="true"
+                android:focusable="true"
+                android:fontFamily="@font/raleway_bold"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="Reintentar"
+                android:textColor="@color/tinta"
+                android:textSize="11.5sp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -284,11 +392,12 @@
 
         </LinearLayout>
 
-        <!-- El módulo contesta pero el robot no: hay que explicar qué implica seguir. -->
+        <!-- Se cortó el BLE sin que el usuario lo pida. -->
         <ScrollView
-            android:id="@+id/vistaSinRespuesta"
+            android:id="@+id/vistaPerdida"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:fillViewport="true"
             android:overScrollMode="never"
             android:scrollbars="none"
             android:visibility="gone">
@@ -296,7 +405,136 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingVertical="22dp">
+
+                <TextView
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:background="@drawable/icono_desconectado"
+                    android:elevation="@dimen/sombra_tarjeta"
+                    android:fontFamily="@font/jetbrains_mono_bold"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="!"
+                    android:textColor="@color/stop"
+                    android:textSize="25sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="13dp"
+                    android:fontFamily="@font/raleway_bold"
+                    android:gravity="center"
+                    android:text="Se perdió la conexión"
+                    android:textColor="@color/tinta"
+                    android:textSize="17sp" />
+
+                <TextView
+                    android:id="@+id/nombrePerdida"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/lato_regular"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.6"
+                    android:maxWidth="280dp"
+                    android:text="El robot dejó de responder: puede haberse alejado, apagado o quedado sin batería."
+                    android:textColor="@color/tinta2"
+                    android:textSize="12.5sp" />
+
+                <!-- Sólo si estaba corriendo cuando se cortó: ahí no hay cómo mandarle STOP. -->
+                <LinearLayout
+                    android:id="@+id/cajaAndando"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/aviso_perdida"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="13dp"
+                    android:paddingVertical="12dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/jetbrains_mono_semibold"
+                        android:letterSpacing="0.08"
+                        android:text="ESTABA ANDANDO"
+                        android:textColor="@color/stop"
+                        android:textSize="9.5sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:fontFamily="@font/lato_regular"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="Sin conexión no se le puede mandar STOP. Si sigue corriendo, frenalo a mano."
+                        android:textColor="@color/tinta"
+                        android:textSize="12sp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/botonBuscarDeNuevo"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/boton_contorno"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:fontFamily="@font/raleway_bold"
+                        android:gravity="center"
+                        android:padding="13dp"
+                        android:text="Buscar de nuevo"
+                        android:textColor="@color/tinta2"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:id="@+id/botonReconectar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="9dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/boton_marca"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:fontFamily="@font/raleway_bold"
+                        android:gravity="center"
+                        android:padding="13dp"
+                        android:text="Reconectar"
+                        android:textColor="@color/marca_tinta"
+                        android:textSize="12.5sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- El módulo contesta pero el robot no: hay que explicar qué implica seguir. -->
+        <ScrollView
+            android:id="@+id/vistaSinRespuesta"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
                 android:orientation="vertical"
                 android:paddingHorizontal="22dp"
                 android:paddingVertical="22dp">
@@ -444,8 +682,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingHorizontal="14dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="4dp">
+                android:paddingTop="8dp"
+                android:paddingBottom="6dp">
 
                 <LinearLayout
                     android:id="@+id/filaModo"
@@ -496,10 +734,10 @@
                     android:id="@+id/contenedorParametros"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="9dp"
+                    android:layout_marginTop="7dp"
                     android:clipChildren="false"
                     android:clipToPadding="false"
-                    android:divider="@drawable/espacio_7"
+                    android:divider="@drawable/espacio_6"
                     android:orientation="vertical"
                     android:showDividers="middle" />
 
@@ -507,14 +745,14 @@
                     android:id="@+id/botonGrabar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="9dp"
+                    android:layout_marginTop="7dp"
                     android:background="@drawable/boton_grabar"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="12dp"
-                    android:paddingVertical="9dp">
+                    android:paddingVertical="8dp">
 
                     <TextView
                         android:id="@+id/iconoGrabar"
@@ -703,7 +941,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:scrollbarThumbVertical="@color/terminal_divisor">
+                    android:scrollbars="none">
 
                     <LinearLayout
                         android:id="@+id/lineasHistorial"
@@ -720,6 +958,284 @@
             </LinearLayout>
 
         </FrameLayout>
+
+        <!-- Motores: el izquierdo a la izquierda y el derecho a la derecha, como se ve el
+             robot desde arriba, así no hay que traducir nada al tocar. -->
+        <ScrollView
+            android:id="@+id/pestanaMotores"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="6dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="2dp"
+                    android:paddingTop="2dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/raleway_extrabold"
+                        android:lineSpacingMultiplier="1.2"
+                        android:text="Sentido de giro"
+                        android:textColor="@color/tinta"
+                        android:textSize="17sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="@font/lato_regular"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="Para cuando un motor quedó soldado al revés."
+                        android:textColor="@color/tinta2"
+                        android:textSize="12.5sp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="11dp"
+                    android:background="@drawable/tarjeta_ruedas"
+                    android:elevation="@dimen/sombra_tarjeta"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/raleway_bold"
+                            android:lineSpacingMultiplier="1.2"
+                            android:text="Izquierdo"
+                            android:textColor="@color/tinta"
+                            android:textSize="13sp" />
+
+                        <FrameLayout
+                            android:id="@+id/ruedaIzq"
+                            android:layout_width="46dp"
+                            android:layout_height="74dp"
+                            android:layout_marginTop="9dp"
+                            android:background="@drawable/rueda">
+
+                            <TextView
+                                android:id="@+id/flechaIzq"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:fontFamily="@font/jetbrains_mono_bold"
+                                android:includeFontPadding="false"
+                                android:text="↑"
+                                android:textColor="@color/dato"
+                                android:textSize="26sp" />
+
+                        </FrameLayout>
+
+                        <TextView
+                            android:id="@+id/estadoIzq"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:fontFamily="@font/jetbrains_mono_semibold"
+                            android:letterSpacing="0.09"
+                            android:text="NORMAL"
+                            android:textColor="@color/dato"
+                            android:textSize="9.5sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:background="@drawable/segmento_pista"
+                            android:orientation="horizontal"
+                            android:padding="3dp">
+
+                            <TextView
+                                android:id="@+id/normalIzq"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/segmento_normal"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:fontFamily="@font/raleway_bold"
+                                android:gravity="center"
+                                android:text="Normal"
+                                android:textColor="@color/marca_tinta"
+                                android:textSize="11.5sp" />
+
+                            <TextView
+                                android:id="@+id/invertidoIzq"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_marginStart="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/segmento_apagado"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:fontFamily="@font/raleway_bold"
+                                android:gravity="center"
+                                android:text="Invertido"
+                                android:textColor="@color/tinta2"
+                                android:textSize="11.5sp" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- El padding de arriba alinea el chasis con las ruedas, no con los títulos. -->
+                    <LinearLayout
+                        android:layout_width="44dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="10dp"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical"
+                        android:paddingTop="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/jetbrains_mono_semibold"
+                            android:letterSpacing="0.08"
+                            android:lineSpacingMultiplier="1.2"
+                            android:text="FRENTE"
+                            android:textColor="@color/tinta3"
+                            android:textSize="9sp" />
+
+                        <View
+                            android:layout_width="30dp"
+                            android:layout_height="74dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/chasis_punteado" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/raleway_bold"
+                            android:lineSpacingMultiplier="1.2"
+                            android:text="Derecho"
+                            android:textColor="@color/tinta"
+                            android:textSize="13sp" />
+
+                        <FrameLayout
+                            android:id="@+id/ruedaDer"
+                            android:layout_width="46dp"
+                            android:layout_height="74dp"
+                            android:layout_marginTop="9dp"
+                            android:background="@drawable/rueda">
+
+                            <TextView
+                                android:id="@+id/flechaDer"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:fontFamily="@font/jetbrains_mono_bold"
+                                android:includeFontPadding="false"
+                                android:text="↑"
+                                android:textColor="@color/dato"
+                                android:textSize="26sp" />
+
+                        </FrameLayout>
+
+                        <TextView
+                            android:id="@+id/estadoDer"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:fontFamily="@font/jetbrains_mono_semibold"
+                            android:letterSpacing="0.09"
+                            android:text="NORMAL"
+                            android:textColor="@color/dato"
+                            android:textSize="9.5sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:background="@drawable/segmento_pista"
+                            android:orientation="horizontal"
+                            android:padding="3dp">
+
+                            <TextView
+                                android:id="@+id/normalDer"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/segmento_normal"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:fontFamily="@font/raleway_bold"
+                                android:gravity="center"
+                                android:text="Normal"
+                                android:textColor="@color/marca_tinta"
+                                android:textSize="11.5sp" />
+
+                            <TextView
+                                android:id="@+id/invertidoDer"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_marginStart="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/segmento_apagado"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:fontFamily="@font/raleway_bold"
+                                android:gravity="center"
+                                android:text="Invertido"
+                                android:textColor="@color/tinta2"
+                                android:textSize="11.5sp" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:fontFamily="@font/jetbrains_mono_medium"
+                    android:paddingHorizontal="2dp"
+                    android:paddingTop="2dp"
+                    android:text="se aplica al instante · queda guardado en el robot"
+                    android:textColor="@color/tinta3"
+                    android:textSize="10sp" />
+
+            </LinearLayout>
+
+        </ScrollView>
 
         <!-- Aviso breve (snackbar): 14dp de los costados, sobre la barra de Arrancar. -->
         <TextView
@@ -741,55 +1257,107 @@
 
     </FrameLayout>
 
-    <!-- ===== Arrancar / Parar ===== -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/borde" />
-
+    <!-- ===== Cronómetro y Arrancar / Parar ===== -->
+    <!-- El borde de arriba va adentro para que la barra se pueda esconder entera de una
+         sola vez cuando no hay conexión. -->
     <LinearLayout
+        android:id="@+id/barraMarcha"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/fondo"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:orientation="horizontal"
-        android:paddingHorizontal="14dp"
-        android:paddingTop="7dp"
-        android:paddingBottom="8dp">
+        android:orientation="vertical">
 
-        <!-- Un solo botón a todo el ancho: en marcha se pinta, late y pasa a decir Parar. -->
-        <FrameLayout
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/borde" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:clipChildren="false">
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="vertical"
+            android:paddingHorizontal="14dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="8dp">
 
-            <!-- Arranca en 0: el código le copia el tamaño del botón (ver MainActivity). -->
-            <View
-                android:id="@+id/haloMarcha"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:alpha="0"
-                android:background="@drawable/halo" />
-
-            <TextView
-                android:id="@+id/botonMarcha"
+            <LinearLayout
+                android:id="@+id/filaCrono"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/arrancar_quieto_desconectado"
-                android:fontFamily="@font/raleway_bold"
                 android:gravity="center"
-                android:paddingVertical="16dp"
-                android:text="Arrancar"
-                android:textColor="@color/tinta3"
-                android:textSize="15sp" />
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="1dp">
 
-        </FrameLayout>
+                <View
+                    android:id="@+id/puntoCrono"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:alpha="0"
+                    android:background="@drawable/punto"
+                    android:backgroundTint="@color/marca" />
+
+                <!-- tnum: con cifras de ancho fijo los dígitos no se mueven a cada décima. -->
+                <TextView
+                    android:id="@+id/textoCrono"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="9dp"
+                    android:fontFamily="@font/jetbrains_mono_bold"
+                    android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="-0.01"
+                    android:text="00:00.0"
+                    android:textColor="@color/tinta3"
+                    android:textSize="28sp" />
+
+                <!-- Hueco del mismo ancho que el punto: así los dígitos quedan centrados. -->
+                <View
+                    android:layout_width="7dp"
+                    android:layout_height="7dp" />
+
+            </LinearLayout>
+
+            <!-- Un solo botón a todo el ancho: en marcha se pinta, late y pasa a decir Parar. -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:clipChildren="false">
+
+                <!-- Arranca en 0: el código le copia el tamaño del botón (ver MainActivity). -->
+                <View
+                    android:id="@+id/haloMarcha"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:alpha="0"
+                    android:background="@drawable/halo" />
+
+                <TextView
+                    android:id="@+id/botonMarcha"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/arrancar_quieto_desconectado"
+                    android:fontFamily="@font/raleway_bold"
+                    android:gravity="center"
+                    android:paddingVertical="14dp"
+                    android:text="Arrancar"
+                    android:textColor="@color/tinta3"
+                    android:textSize="15sp" />
+
+            </FrameLayout>
+
+        </LinearLayout>
 
     </LinearLayout>
 
     <!-- ===== Pestañas ===== -->
     <LinearLayout
+        android:id="@+id/barraPestanas"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/chrome"
@@ -808,6 +1376,10 @@
 
         <include
             android:id="@+id/pestanaBotonRegistro"
+            layout="@layout/boton_pestana" />
+
+        <include
+            android:id="@+id/pestanaBotonMotores"
             layout="@layout/boton_pestana" />
 
     </LinearLayout>

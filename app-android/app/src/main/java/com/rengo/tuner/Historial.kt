@@ -36,7 +36,8 @@ class Historial(
         ROBOT(R.color.terminal_robot),
         EVENTO(R.color.terminal_evento),
         RESPUESTA(R.color.terminal_robot),
-        ERROR(R.color.terminal_error)
+        ERROR(R.color.terminal_error),
+        TIEMPO(R.color.terminal_texto)
     }
 
     private class Entrada(
@@ -105,8 +106,10 @@ class Historial(
         agregar(Entrada(tipo, titulo, antes, valores, ahora()))
     }
 
-    fun evento(texto: String) {
-        agregar(Entrada(Tipo.EVENTO, texto, null, null, ahora()))
+    // El tipo sirve para que la línea salga en otro color: el tiempo de una corrida no es
+    // lo mismo que un aviso suelto.
+    fun evento(texto: String, tipo: Tipo = Tipo.EVENTO) {
+        agregar(Entrada(tipo, texto, null, null, ahora()))
     }
 
     fun respuesta(linea: String) {
@@ -219,7 +222,7 @@ class Historial(
         val cuerpo = when (entrada.tipo) {
             Tipo.INICIO -> "inicio  " +
                 entrada.despues!!.entries.joinToString(" ") { "${it.key}=${it.value}" }
-            Tipo.FECHA, Tipo.EVENTO, Tipo.RESPUESTA, Tipo.ERROR -> entrada.titulo!!
+            Tipo.FECHA, Tipo.EVENTO, Tipo.RESPUESTA, Tipo.ERROR, Tipo.TIEMPO -> entrada.titulo!!
             else -> listOfNotNull(entrada.titulo, diferencias(entrada.antes!!, entrada.despues!!))
                 .joinToString("  ")
         }

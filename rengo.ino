@@ -16,8 +16,10 @@ const int PIN_MOTOR_DER_B = 8;
 const int PIN_MOTOR_DER_PWM = 9;
 
 // --- INVERSIÓN FÍSICA DE MOTORES ---
-const bool INVERTIR_MOTOR_IZQ = false;
-const bool INVERTIR_MOTOR_DER = false;
+// No son constantes porque se invierten desde la app (comandos INVI/INVD) y se guardan en
+// la EEPROM: así se corrige un motor cableado al revés sin recompilar.
+bool invertirMotorIzq = false;
+bool invertirMotorDer = false;
 
 // --- PINES DE SENSORES ---
 const int SENSOR_1 = A7;  // Extremo Izquierdo (-50 mm)
@@ -69,7 +71,10 @@ byte largoBuffer = 0;
 // Cambiada de 0xA5C3 a 0xA5C4 el 28/09/2026: la EEPROM había quedado con todo en 0 (se
 // grabó desde la app mientras el robot no podía contestar y ella mostraba 0). Al no
 // reconocer la firma vieja, el robot ignora eso y arranca con los valores de acá abajo.
-const uint16_t FIRMA_EEPROM = 0xA5C4;
+// Cambiada de 0xA5C4 a 0xA5C5 el 23/10/2026: la struct creció con la inversión de motores,
+// así que los datos viejos ya no coinciden campo por campo. Con la firma nueva se descartan
+// en vez de leerse corridos y dar valores sin sentido.
+const uint16_t FIRMA_EEPROM = 0xA5C5;
 const int DIR_EEPROM = 0;
 
 struct Ajustes {
@@ -79,6 +84,8 @@ struct Ajustes {
   float Kp;
   float Ki;
   float Kd;
+  bool invertirMotorIzq;
+  bool invertirMotorDer;
 };
 
 void setup() {
@@ -121,10 +128,13 @@ void cargarAjustes() {
   Kp = a.Kp;
   Ki = a.Ki;
   Kd = a.Kd;
+  invertirMotorIzq = a.invertirMotorIzq;
+  invertirMotorDer = a.invertirMotorDer;
 }
 
 void guardarAjustes() {
-  Ajustes a = { FIRMA_EEPROM, velocidadBase, velocidadMaxima, Kp, Ki, Kd };
+  Ajustes a = { FIRMA_EEPROM, velocidadBase, velocidadMaxima, Kp, Ki, Kd,
+                invertirMotorIzq, invertirMotorDer };
   EEPROM.put(DIR_EEPROM, a);
 }
 
@@ -138,7 +148,9 @@ void enviarValores() {
   BT.print(F(" KP="));   BT.print(Kp, 3);
   BT.print(F(" KI="));   BT.print(Ki, 4);
   BT.print(F(" KD="));   BT.print(Kd, 3);
-  BT.print(F(" EST="));  BT.println(robotActivo ? F("RUN") : F("STOP"));
+  BT.print(F(" EST="));  BT.print(robotActivo ? F("RUN") : F("STOP"));
+  BT.print(F(" INVI=")); BT.print(invertirMotorIzq ? 1 : 0);
+  BT.print(F(" INVD=")); BT.println(invertirMotorDer ? 1 : 0);
 }
 
 void ejecutarComando(char *txt) {
@@ -172,6 +184,10 @@ void ejecutarComando(char *txt) {
     enviarValores();
     return;
   }
+  if (!strcmp(clave, "PING")) {
+    BT.println(F("PONG"));
+    return;
+  }
   if (!strcmp(clave, "START")) {
     arrancar();
     BT.println(F("OK RUN"));
@@ -187,6 +203,25 @@ void ejecutarComando(char *txt) {
 
   if (!hayValor) {
     BT.println(F("ERR COMANDO"));
+    return;
+  }
+
+  // --- Inversión de motores ---
+  // Se graban en el acto y no con SAVE: se cambian una vez cada tanto, al armar la placa,
+  // así que no hay riesgo de gastar la EEPROM y la inversión sobrevive al apagado.
+  if (!strcmp(clave, "INVI") || !strcmp(clave, "INVD")) {
+    bool invertido = (valor != 0);
+    if (clave[3] == 'I') {
+      invertirMotorIzq = invertido;
+    } else {
+      invertirMotorDer = invertido;
+    }
+    guardarAjustes();
+
+    BT.print(F("OK "));
+    BT.print(clave);
+    BT.print('=');
+    BT.println(invertido ? 1 : 0);
     return;
   }
 
@@ -247,11 +282,11 @@ void moverMotor(int pinA, int pinB, int pinPWM, int vel, bool invertido) {
 }
 
 void moverMotorIzq(int vel) {
-  moverMotor(PIN_MOTOR_IZQ_A, PIN_MOTOR_IZQ_B, PIN_MOTOR_IZQ_PWM, vel, INVERTIR_MOTOR_IZQ);
+  moverMotor(PIN_MOTOR_IZQ_A, PIN_MOTOR_IZQ_B, PIN_MOTOR_IZQ_PWM, vel, invertirMotorIzq);
 }
 
 void moverMotorDer(int vel) {
-  moverMotor(PIN_MOTOR_DER_A, PIN_MOTOR_DER_B, PIN_MOTOR_DER_PWM, vel, INVERTIR_MOTOR_DER);
+  moverMotor(PIN_MOTOR_DER_A, PIN_MOTOR_DER_B, PIN_MOTOR_DER_PWM, vel, invertirMotorDer);
 }
 
 // Además de soltar los motores (los dos pines de sentido en bajo, sin frenarlos de golpe),

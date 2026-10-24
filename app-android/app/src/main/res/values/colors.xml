@@ -42,6 +42,11 @@
     <color name="tema_icono">#CFDBE8</color>
     <color name="punto_desconectado">#7C8A99</color>
     <color name="barrido_fondo">#14FFFFFF</color>
+    <!-- Sobre el chrome gris no se leen el ámbar ni el rojo del tema claro, así que
+         la cabecera usa estos dos, iguales en los dos temas. -->
+    <color name="chrome_alerta">#E3B341</color>
+    <color name="chrome_stop">#FF8A80</color>
+    <color name="barrita_apagada">#40FFFFFF</color>
 
     <!-- Historial: fijo en los dos temas, siempre con pinta de terminal. -->
     <color name="terminal_fondo">#0D1117</color>

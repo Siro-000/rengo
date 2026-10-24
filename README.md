@@ -250,7 +250,7 @@ cercanos"; sin ese permiso no puede buscar el robot.
 
 ## Cómo se usa la app
 
-Tiene tres pestañas; sin conexión, las tres muestran el cartel para conectar.
+Tiene cuatro pestañas; sin conexión, las cuatro muestran el cartel para conectar.
 
 - **Sintonía**: los cinco parámetros. Cada `+` / `−` manda el cambio al instante, y un valor
   escrito a mano se manda al salir del casillero o con "Listo". Eso cambia la RAM del robot, no
@@ -263,15 +263,28 @@ Tiene tres pestañas; sin conexión, las tres muestran el cartel para conectar.
   se ve en qué modo estás, o "Personalizado" si tocaste algo.
 - **Registro**: el historial de cambios, con fecha y hora. Tocar una línea vuelve a los valores
   de ese momento (manda solo los que difieren). Se guarda en el celular hasta 300 líneas.
+- **Motores**: el sentido de giro de cada rueda, para cuando un motor quedó soldado al revés.
+  Se aplica al instante y queda guardado en el robot (comandos `INVI` / `INVD`), así que
+  sobrevive al apagado y no hace falta recompilar el firmware para corregirlo.
 
-**Arrancar** y **Parar** están siempre abajo. El botón de arriba a la derecha alterna tema
-claro y oscuro; por defecto sigue al del celular.
+**Arrancar** y **Parar** están siempre abajo, con un **cronómetro** que mide cada corrida: se
+pone en cero al arrancar y el tiempo queda anotado en el Registro al parar. Si la conexión se
+corta mientras el robot anda, la corrida se descarta (el tiempo ya no sería real).
+
+El botón de arriba a la derecha alterna tema claro y oscuro; por defecto sigue al del celular.
 
 Al salir y volver a la app se reengancha sola al último módulo usado, sin escanear.
 
 "Conectado" quiere decir conectado **al módulo Bluetooth**. Que el Arduino reciba bien los
 comandos solo se confirma cuando contesta: sus valores aparecen al conectar y Grabar pasa a
-"El robot confirmó".
+"El robot confirmó". Para no confundir las dos cosas, la app le manda un `PING` cada tres
+segundos:
+
+- Si el robot deja de contestar pero el módulo sigue enganchado, aparece una **banda amarilla**
+  avisando que no llegan respuestas (típico: el cable del módulo al Arduino flojo).
+- Si se corta el Bluetooth —se alejó, se apagó, se quedó sin batería— aparece la pantalla
+  **"Se perdió la conexión"**, con *Reconectar* (al mismo módulo, sin escanear) y *Buscar de
+  nuevo*. Si el robot venía andando, lo avisa: ya no se le puede mandar STOP.
 
 ## Comandos por Bluetooth
 
@@ -282,9 +295,15 @@ sirve, no va a ver el módulo:
 ```
 VEL=135      VMAX=255      KP=2.4      KI=0.01      KD=3.0
 SAVE         GET           START       STOP         LOAD
+INVI=1       INVD=0        PING
 ```
 
 Acepta `VEL=135`, `vel 135` o `V135`. Contesta `OK ...` o `ERR COMANDO`.
+
+`INVI` e `INVD` invierten el sentido del motor izquierdo y del derecho (`1` invertido, `0`
+normal); se aplican al instante y se graban solos en la EEPROM, porque corrigen un error de
+cableado y no algo que se ande tocando. `PING` contesta `PONG` y sirve para saber si el
+Arduino sigue escuchando. `GET` devuelve también `INVI=` e `INVD=`.
 
 ## Para modificar la app
 
@@ -300,11 +319,20 @@ Compose ni librerías aparte de las de AndroidX y Material.
 | `MainActivity.kt` | la pantalla y casi toda la lógica: parámetros, tope de velocidad, modos, pestañas, estado de la conexión, escaneo |
 | `BluetoothLink.kt` | la conexión BLE con el módulo: conectar, mandar comandos con 80 ms entre uno y otro (el Arduino pierde bytes si llegan pegados) y rearmar las respuestas, que llegan de a 20 bytes |
 | `Modos.kt` | los modos guardados, como JSON en `SharedPreferences` |
+| `Cronometro.kt` | el cronómetro de cada corrida y sus formatos de pantalla e historial |
+| `RespuestaRobot.kt` | lee las líneas que manda el robot (`VEL=... INVI=...`, `PONG`, `OK ...`) |
 | `Historial.kt` | el historial: qué se anota, cómo se juntan los toques seguidos, el guardado |
 | `Dialogos.kt` | los diálogos de confirmación y las hojas que suben desde abajo |
 | `res/layout/` | las pantallas |
 | `res/values/colors.xml` y `res/values-night/colors.xml` | colores del tema claro y del oscuro |
 | `res/font/` | Raleway, Lato y JetBrains Mono, que van dentro del APK |
+
+`Cronometro.kt` y `RespuestaRobot.kt` no dependen de Android, así que tienen tests que corren
+en la computadora sin celular:
+
+```bash
+cd app-android && ./gradlew testDebugUnitTest
+```
 
 Algunas decisiones que conviene no deshacer sin pensarlo:
 
